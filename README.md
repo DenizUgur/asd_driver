@@ -19,5 +19,4 @@ For `asd_test` you need to copy `models` folder to `~/.gazebo` folder
 |  Purpose   |          Name           | Verison  |
 |:----------:|:-----------------------:|:--------:|
 |   SLAM     | ros-melodic-rtabmap-ros |  0.20.0  |
-|   robot    | ros-melodic-turtlebot3  |  any     |
 |   mapping  | ros-melodic-grid-map    |  1.6.2-1 |
