@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>asd_robot</name>
+  <version>0.1.0</version>
+  <description>Autonomous Slope Dependant Driver - Robot Description</description>
+  <maintainer email="deniz.ugur@ozu.edu.tr">Deniz Ugur</maintainer>
+  <license>MIT</license>
+  <url type="repository">https://github.com/DenizUgur/asd_driver</url>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

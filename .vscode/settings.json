@@ -1,0 +1,11 @@
+{
+    "python.pythonPath": "/usr/bin/python3",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.autoComplete.extraPaths": [
+        "/home/ozurover/catkin_ws/devel_isolated/teleop_tools_msgs/lib/python2.7/dist-packages",
+        "/home/ozurover/catkin_ws/devel_isolated/kindr_msgs/lib/python2.7/dist-packages",
+        "/home/ozurover/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
+}

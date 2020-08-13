@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>asd_test</name>
+  <version>0.1.0</version>
+  <description>Autonomous Slope Dependant Driver - Test Base</description>
+  <maintainer email="deniz.ugur@ozu.edu.tr">Deniz Ugur</maintainer>
+  <license>MIT</license>
+  <url type="repository">https://github.com/DenizUgur/asd_driver</url>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>rtabmap_ros</build_depend>
+  <build_depend>r-base</build_depend>
+  <build_depend>python3</build_depend>
+  <build_depend>python-rpy2</build_depend>
+
+  <exec_depend>rtabmap_ros</exec_depend>
+  <exec_depend>r-base</exec_depend>
+  <exec_depend>python3</exec_depend>
+  <exec_depend>python-rpy2</exec_depend>
+</package>
