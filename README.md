@@ -12,6 +12,7 @@ For `asd_test` you need to copy `models` folder to `~/.gazebo` folder
 |   apt  |          r-base         |  3.6.3  |
 |   apt  |          python         |  3.6.7  |
 |  pip3  |          rpy2           |  3.3.5  |
+|  pip3  |          ray            |  0.8.7  |
 |  CRAN  |        gdistance        |  1.3-6  |
 |  CRAN  |          rgeos          |  0.5-3  |
 
@@ -20,3 +21,10 @@ For `asd_test` you need to copy `models` folder to `~/.gazebo` folder
 |:----------:|:-----------------------:|:--------:|
 |   SLAM     | ros-melodic-rtabmap-ros |  0.20.0  |
 |   mapping  | ros-melodic-grid-map    |  1.6.2-1 |
+
+# Credits
+This application uses Open Source components. You can find the source code of their open source projects along with license information below. We acknowledge and are grateful to these developers for their contributions to open source.
+
+* Project: LEO Rover Vanilla https://github.com/PUT-UGV-Team/leo-vanilla 
+Copyright 2020 PUT-UGV-Team! Inc. All right reserved.
+License (GNU General Public License v3.0) https://github.com/PUT-UGV-Team/leo-vanilla/blob/master/LICENSE

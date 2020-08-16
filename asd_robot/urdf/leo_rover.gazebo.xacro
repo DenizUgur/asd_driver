@@ -1,0 +1,196 @@
+<?xml version="1.0"?>
+<robot name="turtlebot3_waffle_sim"
+  xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:arg name="camera_visual" default="false"/>
+  <xacro:arg name="imu_visual" default="false"/>
+  <xacro:arg name="cmd_vel_topic" default="mouse_vel"/>
+
+  <gazebo reference="base_link">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+  <gazebo reference="wheel_FL_link">
+    <mu1>3.0</mu1>
+    <mu2>3.0</mu2>
+    <kp>500000.0</kp>
+    <kd>10.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>5.0</maxVel>
+    <fdir1>1 0 0</fdir1>
+  </gazebo>
+  <gazebo reference="wheel_FL_joint">
+    <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>100.0</updateRate>
+      <topicName>/ft/FL</topicName>
+      <jointName>wheel_FL_joint</jointName>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="wheel_RL_link">
+    <mu1>3.0</mu1>
+    <mu2>3.0</mu2>
+    <kp>500000.0</kp>
+    <kd>10.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>6.0</maxVel>
+    <fdir1>1 0 0</fdir1>
+  </gazebo>
+  <gazebo reference="wheel_RL_joint">
+    <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>100.0</updateRate>
+      <topicName>/ft/RL</topicName>
+      <jointName>wheel_RL_joint</jointName>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="wheel_FR_link">
+    <mu1>3.0</mu1>
+    <mu2>3.0</mu2>
+    <kp>500000.0</kp>
+    <kd>10.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>6.0</maxVel>
+    <fdir1>1 0 0</fdir1>
+  </gazebo>
+  <gazebo reference="wheel_FR_joint">
+    <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>100.0</updateRate>
+      <topicName>/ft/FR</topicName>
+      <jointName>wheel_FR_joint</jointName>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="wheel_RR_link">
+    <mu1>3.0</mu1>
+    <mu2>3.0</mu2>
+    <kp>500000.0</kp>
+    <kd>10.0</kd>
+    <minDepth>0.001</minDepth>
+    <maxVel>6.0</maxVel>
+    <fdir1>1 0 0</fdir1>
+  </gazebo>
+  <gazebo reference="wheel_RR_joint">
+    <provideFeedback>true</provideFeedback>
+  </gazebo>
+  <gazebo>
+    <plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+      <updateRate>100.0</updateRate>
+      <topicName>/ft/RR</topicName>
+      <jointName>wheel_RR_joint</jointName>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="skid_steer_drive_controller" filename="libgazebo_ros_skid_steer_drive.so">
+      <commandTopic>$(arg cmd_vel_topic)</commandTopic>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+
+      <robotBaseFrame>base_footprint</robotBaseFrame>
+      <broadcastTF>true</broadcastTF>
+
+      <updateRate>30.0</updateRate>
+
+      <leftFrontJoint>wheel_FL_joint</leftFrontJoint>
+      <rightFrontJoint>wheel_FR_joint</rightFrontJoint>
+      <leftRearJoint>wheel_RL_joint</leftRearJoint>
+      <rightRearJoint>wheel_RR_joint</rightRearJoint>
+
+      <wheelSeparation>0.3165</wheelSeparation>
+      <wheelDiameter>0.13</wheelDiameter>
+
+      <torque>100</torque>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="imu_link">
+    <sensor type="imu" name="imu">
+      <always_on>true</always_on>
+      <visualize>$(arg imu_visual)</visualize>
+    </sensor>
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="imu_plugin" filename="libgazebo_ros_imu.so">
+      <alwaysOn>true</alwaysOn>
+      <bodyName>imu_link</bodyName>
+      <frameName>imu_link</frameName>
+      <topicName>imu</topicName>
+      <serviceName>imu_service</serviceName>
+      <gaussianNoise>0.0</gaussianNoise>
+      <updateRate>200</updateRate>
+      <imu>
+        <noise>
+          <type>gaussian</type>
+          <rate>
+            <mean>0.0</mean>
+            <stddev>2e-4</stddev>
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+          </rate>
+          <accel>
+            <mean>0.0</mean>
+            <stddev>1.7e-2</stddev>
+            <bias_mean>0.1</bias_mean>
+            <bias_stddev>0.001</bias_stddev>
+          </accel>
+        </noise>
+      </imu>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="camera_rgb_frame">
+    <sensor type="depth" name="realsense_R200">
+      <always_on>true</always_on>
+      <visualize>$(arg camera_visual)</visualize>
+      <camera>
+        <horizontal_fov>1.815</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+          <format>R8G8B8</format>
+        </image>
+        <depth_camera></depth_camera>
+        <clip>
+          <near>0.28</near>
+          <far>20</far>
+        </clip>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_openni_kinect.so">
+        <baseline>0.2</baseline>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>30.0</updateRate>
+        <cameraName>camera</cameraName>
+        <frameName>camera_rgb_optical_frame</frameName>
+        <imageTopicName>rgb/image_raw</imageTopicName>
+        <depthImageTopicName>depth/image_raw</depthImageTopicName>
+        <pointCloudTopicName>depth/points</pointCloudTopicName>
+        <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+        <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
+        <pointCloudCutoff>0.4</pointCloudCutoff>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+        <CxPrime>0.0</CxPrime>
+        <Cx>0.0</Cx>
+        <Cy>0.0</Cy>
+        <focalLength>0</focalLength>
+        <hackBaseline>0</hackBaseline>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>
