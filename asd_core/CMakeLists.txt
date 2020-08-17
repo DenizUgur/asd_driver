@@ -12,3 +12,7 @@ catkin_package()
 install(PROGRAMS scripts/tf_to_pose_publisher.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+install(PROGRAMS src/base.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
