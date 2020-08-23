@@ -3,7 +3,7 @@
     <!-- Arguments -->
     <arg name="rtabmapviz" default="false" />
     <arg name="rviz" default="true" />
-    <arg name="show_gazebo" default="false" />
+    <arg name="show_gazebo" default="true" />
 
     <!-- Robot Related Argumates -->
     <arg name="robot_name" default="leo_rover" />
@@ -12,16 +12,16 @@
     <arg name="rviz_cfg" default="$(find asd_test)/rviz/default.rviz" />
 
     <!-- Turtlebot3 -->
-    <arg name="x_pos" default="26.4"/>
-    <arg name="y_pos" default="-26.3"/>
-    <arg name="z_pos" default="0.60"/>
+    <arg name="x_pos" default="10.14"/>
+    <arg name="y_pos" default="-11.4"/>
+    <arg name="z_pos" default="0.6"/>
     <arg name="roll" default="0"/>
     <arg name="pitch" default="0"/>
-    <arg name="yaw" default="0.8"/>
+    <arg name="yaw" default="1.31"/>
 
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/> -->
-        <arg name="world_name" value="$(find asd_test)/worlds/marsyard.world"/>
+        <arg name="world_name" value="$(find marsyard)/worlds/marsyard.world"/>
         <arg name="paused" value="false"/>
         <arg name="use_sim_time" value="true"/>
         <arg name="gui" value="$(arg show_gazebo)"/>

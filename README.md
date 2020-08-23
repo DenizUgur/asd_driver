@@ -4,7 +4,7 @@
 </div>
 
 # Notes
-For `asd_test` you need to copy `models` folder to `~/.gazebo` folder
+For world model use https://github.com/fictionlab/marsyard
 
 # Dependencies
 | Vendor |           Name          | Verison |
