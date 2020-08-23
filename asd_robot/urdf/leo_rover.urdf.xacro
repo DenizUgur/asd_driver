@@ -102,9 +102,7 @@
     <child link="rocker_L_link"/>
     <axis xyz="0 1 0"/>
     <limit effort="10" lower="-0.24" upper="0.24" velocity="0.5"/>
-    <!-- TODO effort velocity -->
     <dynamics friction="0.1" damping="0.1"/>
-    <!-- TODO -->
   </joint>
   <xacro:rocker_link name="R"/>
   <joint name="rocker_R_joint" type="${rockers_joint_type}">
@@ -113,9 +111,7 @@
     <child link="rocker_R_link"/>
     <axis xyz="0 1 0"/>
     <limit effort="10" lower="-0.24" upper="0.24" velocity="0.5"/>
-    <!-- TODO effort velocity -->
     <dynamics friction="0.1" damping="0.1"/>
-    <!-- TODO -->
     <mimic joint="rocker_L_joint"/>
   </joint>
 

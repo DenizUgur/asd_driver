@@ -7,7 +7,6 @@ import concurrent.futures
 import curses
 
 # Import internals
-from internal.information_server import InformationServer
 from internal.sector_service import SectorService
 
 # Import types
@@ -21,24 +20,18 @@ def main(scr, *args):
 
     # Screen initialization
     curses.noecho()
+    curses.use_default_colors()
+    curses.start_color()
     curses.cbreak()
     curses.curs_set(0)
     scr.keypad(True)
     scr.erase()
 
-    # Initialize Information Server
-    InformationServer_Instance = InformationServer()
-
-    while not InformationServer_Instance.is_online():
-        print("Waiting for information server to become available...")
-        time.sleep(1)
+    # Colors
+    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
 
     # Initialize Sector Server
     SectorService_Instance = SectorService()
-
-    while not SectorService_Instance.is_online():
-        print("Waiting for sector service to become available...")
-        time.sleep(1)
 
     # Subscribe to relevant topics and services
     rospy.Subscriber(
@@ -58,10 +51,8 @@ def main(scr, *args):
         print(why)
         exit(5)
 
-    scr.addstr(0, 38, "OK", curses.A_BOLD | curses.COLOR_GREEN)
-    scr.addstr(1, 0, "Starting control loop in 2 seconds", curses.A_BOLD)
+    scr.addstr(0, 38, "OK", curses.color_pair(1))
     scr.refresh()
-    time.sleep(2)
 
     try:
         # ROS Loop
@@ -73,39 +64,27 @@ def main(scr, *args):
             Every step is clearly documented with their purpose.
             """
 
-            # TODO: Actually, first step should be generating initial map. Rotating rover 360 degrees
-
             """
             First step is to generate a local area.
 
-            '/elevation_map' topic will serve us 10 m^2 of space around rover.
+            '/elevation_map' topic will serve us 7 m^2 of space around rover.
             With the help of odometry info, we will calculate missing information on terrain.
-            Ray-tracing will be used for appliciable areas. Other areas will be either average of its surroundings
-            or marked as unknown.
+            Ray-tracing will be used for appliciable areas.
             """
-            # * In this step we are checking if the elevation map at this time has any new infromation that hasn't been on our current route.
-            # * Or maybe ray-traced areas have valid information now.
             start = dt()
-            if SectorService_Instance.is_update_required():
-                # InformationServer_Instance.update(
-                #     {"sector_service": {"status": "updating"}}
-                # )
+            SectorService_Instance.update_terrain()
 
-                # TODO: We can implement spawning threads with different settings to increase crash recovery
-                # * For example: If alpha thread dies consecutively for 3 times we can try to fall back and/or try with smaller size
-                try:
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        future = executor.submit(
-                            SectorService_Instance.start_alpha_thread
-                        )
-                        status, errors, result, original = future.result(timeout=7)
-                except concurrent.futures.TimeoutError:
-                    print("Error occured in alpha thread!")
+            # TODO: We can implement spawning threads with different settings to increase crash recovery
+            # * For example, If alpha thread dies consecutively for 3 times we can try to fall back and/or try with smaller size
+            try:
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(SectorService_Instance.start_alpha_thread)
+                    status, errors, result, original = future.result(timeout=6)
+            except concurrent.futures.TimeoutError:
+                print("Error occured in alpha thread!")
+                status, errors, result, original = [None] * 4
 
-                # InformationServer_Instance.update(
-                #     {"sector_service": {"status": "updated", "sector_info": result}}
-                # )
-                end = dt()
+            end = dt()
 
             #! Remove this after testing
             if not result is None and np.max(result) < 1000:
@@ -144,11 +123,12 @@ def main(scr, *args):
                 plt.colorbar(dtm, ax=ax2)
                 fig.tight_layout()
                 plt.show()
+                
                 scr.addstr(
                     0, 1, "Took {:.2f} seconds STATUS={}".format(end - start, status)
                 )
-                # if len(errors) > 0:
-                #     print(errors)
+                # for i, error in enumerate(errors):
+                #     scr.addstr(10 + i, 0, error.get("msg"))
             else:
                 scr.addstr(1, 1, "Error occured!")
 

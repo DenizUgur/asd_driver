@@ -4,7 +4,7 @@
 
     <group ns="rtabmap">
         <node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen" args="-d">
-            <param name="database_path" type="string" value="~/.ros/rtabmap.db"/>
+            <param name="database_path" type="string" value=""/> <!-- ~/.ros/rtabmap.db -->
             <param name="frame_id" type="string" value="base_footprint"/>
             <param name="initial_pose" type="string" value="0 0 0 0 0 0" />
 
