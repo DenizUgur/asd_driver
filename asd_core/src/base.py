@@ -4,65 +4,71 @@ from matplotlib import pyplot as plt
 from timeit import default_timer as dt
 import numpy as np
 import concurrent.futures
-import curses
 
 # Import internals
 from internal.sector_service import SectorService
+from internal.driver import Driver
+from sdpath.lcp import LCP
 
 # Import types
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
 
-def main(scr, *args):
-    global InformationServer_Instance, SectorService_Instance
+def route(payload):
+    SectorService_Instance.update_pose(payload.pose)
+    Driver_Instance.update_pose(payload.pose)
+
+
+def main():
+    global SectorService_Instance, Driver_Instance
 
     rospy.init_node("asd_core")
 
-    # Screen initialization
-    curses.noecho()
-    curses.use_default_colors()
-    curses.start_color()
-    curses.cbreak()
-    curses.curs_set(0)
-    scr.keypad(True)
-    scr.erase()
+    print("Enter current location as X-Y coordinates. It needs to be in meters.")
+    x = 0  # float(input("X="))
+    y = 0  # float(input("Y="))
 
-    # Colors
-    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
-
-    # Initialize Sector Server
+    # Initialize Modules
     SectorService_Instance = SectorService()
+    Driver_Instance = Driver()
+    LCP_Instance = LCP()
 
     # Subscribe to relevant topics and services
-    rospy.Subscriber(
-        "/base_footprint_pose",
-        PoseWithCovarianceStamped,
-        lambda payload: SectorService_Instance.update_pose(payload.pose),
-    )
+    rospy.Subscriber("/base_footprint_pose", PoseWithCovarianceStamped, route)
 
     # Wait for elevation map to be available
-    scr.addstr(0, 0, "Waiting for topics to be available...")
+    rospy.loginfo("Waiting for topics to become online...")
     try:
         rospy.wait_for_service("/elevation_mapping/get_submap", timeout=60)
         rospy.wait_for_message(
             "/base_footprint_pose", PoseWithCovarianceStamped, timeout=10
         )
+        rospy.loginfo("OK!")
     except rospy.ROSException as why:
-        print(why)
+        rospy.logerr(repr(why))
         exit(5)
-
-    scr.addstr(0, 38, "OK", curses.color_pair(1))
-    scr.refresh()
 
     try:
         # ROS Loop
+        map_count = 0
+        error_count = 0
+        loop = 0
+        last_time = 10
+        Driver_Instance.create_zero_vector(x, y)
+
+        rospy.loginfo("Running the control loop")
         while not rospy.core.is_shutdown():
-            scr.erase()
-            scr.addstr(5, 5, "Running the control loop", curses.A_BOLD)
+            loop += 1
             """
             This is the main loop. Control sequence will live here. 
             Every step is clearly documented with their purpose.
             """
+            if Driver_Instance.is_target_reached():
+                x, y, r = float(input("X=")), float(input("Y=")), float(input("R="))
+            else:
+                rospy.loginfo(
+                    "{:.1f}% completed".format(Driver_Instance.percent_complete())
+                )
 
             """
             First step is to generate a local area.
@@ -74,73 +80,65 @@ def main(scr, *args):
             start = dt()
             SectorService_Instance.update_terrain()
 
-            # TODO: We can implement spawning threads with different settings to increase crash recovery
-            # * For example, If alpha thread dies consecutively for 3 times we can try to fall back and/or try with smaller size
             try:
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(SectorService_Instance.start_alpha_thread)
-                    status, errors, result, original = future.result(timeout=6)
+                    local_map = future.result(timeout=last_time + 2)
+                    map_count += 1
+                    last_time = dt() - start
             except concurrent.futures.TimeoutError:
-                print("Error occured in alpha thread!")
-                status, errors, result, original = [None] * 4
+                rospy.logerr("Problem in Alpha Thread")
+                local_map = [None] * 3
+                error_count += 1
+                last_time = 10
+                continue
 
+            if not local_map is None and np.max(local_map) < 1000:
+                if last_time > 2:
+                    rospy.logwarn("Took {:.2f} seconds to ray trace".format(last_time))
+                else:
+                    rospy.loginfo("Took {:.2f} seconds to ray trace".format(last_time))
+                rospy.loginfo("{:.1f}% successful".format(100 * map_count / (loop)))
+            else:
+                rospy.logerr("Error occured!")
+                continue
+
+            start = dt()
+            try:
+                LCP_Instance.process_dem(
+                    np.flip(local_map, axis=0),
+                    extent=SectorService_Instance.get_extent(),
+                )
+                LCP_Instance.set_points(
+                    Driver_Instance.get_current_loc(),
+                    (x + Driver_Instance.cx, y + Driver_Instance.cy),
+                )
+                PATH = LCP_Instance.calculate()
+            except Exception as why:
+                rospy.logerr("An error occured on LCP!")
+                rospy.logerr(repr(why))
+                continue
             end = dt()
 
-            #! Remove this after testing
-            if not result is None and np.max(result) < 1000:
-                fig, (ax1, ax2) = plt.subplots(
-                    ncols=2, sharex=True, sharey=True, figsize=(14, 6)
+            if end - start > 2:
+                rospy.logwarn(
+                    "Took {:.2f} seconds to plot the route".format(end - start)
                 )
-
-                if int(np.nanmax(original) / 50) == 0:
-                    dtm_o = ax1.contourf(original, cmap="terrain")
-                else:
-                    dtm_o = ax1.contourf(
-                        original,
-                        cmap="terrain",
-                        levels=range(
-                            int(np.nanmin(original)),
-                            int(np.nanmax(original)),
-                            int(np.nanmax(original) / 50),
-                        ),
-                    )
-
-                if int(np.nanmax(result) / 50) == 0:
-                    dtm = ax2.contourf(result, cmap="terrain")
-                else:
-                    dtm = ax2.contourf(
-                        result,
-                        cmap="terrain",
-                        levels=range(
-                            int(np.nanmin(result)),
-                            int(np.nanmax(result)),
-                            int(np.nanmax(result) / 50),
-                        ),
-                    )
-
-                fig.suptitle("Took {:.2f} seconds".format(end - start), fontsize=14)
-                plt.colorbar(dtm_o, ax=ax1)
-                plt.colorbar(dtm, ax=ax2)
-                fig.tight_layout()
-                plt.show()
-                
-                scr.addstr(
-                    0, 1, "Took {:.2f} seconds STATUS={}".format(end - start, status)
-                )
-                # for i, error in enumerate(errors):
-                #     scr.addstr(10 + i, 0, error.get("msg"))
             else:
-                scr.addstr(1, 1, "Error occured!")
+                rospy.loginfo(
+                    "Took {:.2f} seconds to plot the route".format(end - start)
+                )
 
-            """
-            # TODO: Now that we have a guess of our surroundings, we can calculate a route. But that's for later.
-            """
+            Driver_Instance.follow_path(PATH, r)
 
-            scr.refresh()
-            rospy.rostime.wallsleep(1.0)
-    except KeyboardInterrupt:
-        rospy.core.signal_shutdown("keyboard interrupt")
+            rospy.loginfo("")
+            rospy.rostime.wallsleep(0.5)
+    except (Exception, KeyboardInterrupt) as why:
+        SectorService_Instance.shutdown()
+        rospy.logfatal("Program crashed or halted")
+        rospy.logfatal(repr(why))
+        rospy.core.signal_shutdown("exited")
 
 
 if __name__ == "__main__":
-    curses.wrapper(main)
+    main()
