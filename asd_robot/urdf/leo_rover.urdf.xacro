@@ -101,8 +101,8 @@
     <parent link="base_link"/>
     <child link="rocker_L_link"/>
     <axis xyz="0 1 0"/>
-    <limit effort="10" lower="-0.24" upper="0.24" velocity="0.5"/>
-    <dynamics friction="0.1" damping="0.1"/>
+    <limit effort="100.0" lower="-0.24" upper="0.24" velocity="100.0"/>
+    <dynamics friction="1.0" damping="0.1"/>
   </joint>
   <xacro:rocker_link name="R"/>
   <joint name="rocker_R_joint" type="${rockers_joint_type}">
@@ -110,8 +110,8 @@
     <parent link="base_link"/>
     <child link="rocker_R_link"/>
     <axis xyz="0 1 0"/>
-    <limit effort="10" lower="-0.24" upper="0.24" velocity="0.5"/>
-    <dynamics friction="0.1" damping="0.1"/>
+    <limit effort="100.0" lower="-0.24" upper="0.24" velocity="100.0"/>
+    <dynamics friction="1.0" damping="0.1"/> 
     <mimic joint="rocker_L_joint"/>
   </joint>
 
@@ -121,6 +121,8 @@
     <parent link="rocker_L_link"/>
     <child link="wheel_FL_link"/>
     <axis xyz="0 -1 0"/>
+    <limit effort="2.0" velocity="6.0"/>
+    <dynamics friction="0.3125" damping="0.1"/>
   </joint>
 
   <xacro:wheel_link name="RL" model="A"/>
@@ -129,6 +131,8 @@
     <parent link="rocker_L_link"/>
     <child link="wheel_RL_link"/>
     <axis xyz="0 -1 0"/>
+    <limit effort="2.0" velocity="6.0"/>
+    <dynamics friction="0.3125" damping="0.1"/>
   </joint>
 
   <xacro:wheel_link name="FR" model="B"/>
@@ -137,6 +141,8 @@
     <parent link="rocker_R_link"/>
     <child link="wheel_FR_link"/>
     <axis xyz="0 1 0"/>
+    <limit effort="2.0" velocity="6.0"/>
+    <dynamics friction="0.3125" damping="0.1"/>
   </joint>
 
   <xacro:wheel_link name="RR" model="B"/>
@@ -145,6 +151,8 @@
     <parent link="rocker_R_link"/>
     <child link="wheel_RR_link"/>
     <axis xyz="0 1 0"/>
+    <limit effort="2.0" velocity="6.0"/>
+    <dynamics friction="0.3125" damping="0.1"/> 
   </joint>
 
   <xacro:if value="$(arg default_antenna)">
