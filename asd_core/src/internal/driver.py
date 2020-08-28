@@ -72,6 +72,7 @@ class Driver:
         rospy.loginfo("Driver Daemon online")
 
         try:
+            will_rotate_to_first = True
             while not rospy.core.is_shutdown():
                 try:
                     if len(path) > 0:
@@ -104,11 +105,19 @@ class Driver:
 
                             client.send_goal(goal)
 
+                            if will_rotate_to_first:
+                                rospy.loginfo("Rotating to first pose...")
+                                client.wait_for_result()
+                                will_rotate_to_first = False
+                                path = []
+                        else:
+                            will_rotate_to_first = True
+
                 except Exception as why:
                     rospy.logerr("Error in Driver... Recovering.")
                     rospy.logerr(repr(why))
 
-                rospy.rostime.wallsleep(1.0)
+                rospy.rostime.wallsleep(0.2)
         except Exception:
             pass
 
