@@ -12,10 +12,8 @@
   <build_depend>rtabmap_ros</build_depend>
   <build_depend>r-base</build_depend>
   <build_depend>python3</build_depend>
-  <build_depend>python-rpy2</build_depend>
 
   <exec_depend>rtabmap_ros</exec_depend>
   <exec_depend>r-base</exec_depend>
   <exec_depend>python3</exec_depend>
-  <exec_depend>python-rpy2</exec_depend>
 </package>
