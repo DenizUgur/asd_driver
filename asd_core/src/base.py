@@ -24,6 +24,8 @@ def main():
 
     rospy.init_node("asd_core")
 
+    # TODO: initial rotation? (ARTag's to calibrate and save this config for crash rec.)
+
     print("Enter current location as X-Y coordinates. It needs to be in meters.")
     x = 0  # float(input("X="))
     y = 0  # float(input("Y="))
@@ -64,7 +66,32 @@ def main():
             Every step is clearly documented with their purpose.
             """
             if Driver_Instance.is_target_reached():
-                x, y, r = float(input("X=")), float(input("Y=")), float(input("R="))
+                rospy.loginfo(
+                    "Current location: x={:.2f} y={:.2f} theta={:.0f}".format(
+                        *Driver_Instance.get_current_loc(True)
+                    )
+                )
+                while 1:
+                    try:
+                        print("Actions\n\tNW: New Waypoint\tE: Exit")
+                        prompt = str(input("Write action: "))
+                        if prompt == "E":
+                            prompt = str(
+                                input(
+                                    "Are you sure? This action is irreversible! (write 'exit' to exit) "
+                                )
+                            )
+                            if prompt == "exit":
+                                raise Exception("User decided to exit.")
+
+                        x, y, r = (
+                            float(input("X=")),
+                            float(input("Y=")),
+                            float(input("R=")),
+                        )
+                        break
+                    except ValueError as why:
+                        rospy.logerr(repr(why))
             else:
                 rospy.loginfo(
                     "{:.1f}% completed".format(Driver_Instance.percent_complete())
