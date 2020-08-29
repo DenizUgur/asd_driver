@@ -4,7 +4,6 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects.packages import STAP
 from .rdp import rdp
 
-import noise
 import numpy as np
 import os
 from threading import Thread

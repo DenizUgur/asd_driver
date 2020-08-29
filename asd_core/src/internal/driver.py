@@ -42,36 +42,36 @@ class Driver:
         self.status = payload.status_list.pop().status
 
     def daemon_worker(self):
-        pose = {"pose": None}
-        extract = lambda val: (
-            val.pose.position.x,
-            val.pose.position.y,
-            val.pose.orientation,
-        )
-        path = []
-
-        client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-        rospy.loginfo("Waiting for server to become online.")
-        client.wait_for_server()
-        client.cancel_all_goals()
-
-        rospy.Subscriber(
-            "/asd_core/path",
-            Path,
-            lambda payload: path.__init__([extract(x) for x in payload.poses]),
-        )
-        rospy.Subscriber(
-            "/base_footprint_pose",
-            PoseWithCovarianceStamped,
-            lambda payload: pose.update({"pose": payload}),
-        )
-
-        rospy.wait_for_message("/base_footprint_pose", PoseWithCovarianceStamped)
-        rospy.wait_for_message("/asd_core/path", Path)
-
-        rospy.loginfo("Driver Daemon online")
-
         try:
+            pose = {"pose": None}
+            extract = lambda val: (
+                val.pose.position.x,
+                val.pose.position.y,
+                val.pose.orientation,
+            )
+            path = []
+
+            client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+            rospy.loginfo("Waiting for server to become online.")
+            client.wait_for_server()
+            client.cancel_all_goals()
+
+            rospy.Subscriber(
+                "/asd_core/path",
+                Path,
+                lambda payload: path.__init__([extract(x) for x in payload.poses]),
+            )
+            rospy.Subscriber(
+                "/base_footprint_pose",
+                PoseWithCovarianceStamped,
+                lambda payload: pose.update({"pose": payload}),
+            )
+
+            rospy.wait_for_message("/base_footprint_pose", PoseWithCovarianceStamped)
+            rospy.wait_for_message("/asd_core/path", Path)
+
+            rospy.loginfo("Driver Daemon online")
+
             will_rotate_to_first = True
             while not rospy.core.is_shutdown():
                 try:
@@ -106,7 +106,6 @@ class Driver:
                             client.send_goal(goal)
 
                             if will_rotate_to_first:
-                                rospy.loginfo("Rotating to first pose...")
                                 client.wait_for_result()
                                 will_rotate_to_first = False
                                 path = []
@@ -119,7 +118,7 @@ class Driver:
 
                 rospy.rostime.wallsleep(0.2)
         except Exception:
-            pass
+            rospy.logfatal("Driver Daemon crashed or halted!")
 
     def update_pose(self, payload):
         self.pose = payload.pose
@@ -128,7 +127,13 @@ class Driver:
         self.cx = self.pose.position.x - cx
         self.cy = self.pose.position.y - cy
 
-    def get_current_loc(self):
+    def get_current_loc(self, relative=False):
+        if relative:
+            return (
+                self.pose.position.x - self.cx,
+                self.pose.position.y - self.cy,
+                math.degrees(math.acos(self.pose.orientation.w) * 2),
+            )
         return self.pose.position.x, self.pose.position.y
 
     def is_target_reached(self):
