@@ -97,7 +97,8 @@
 
     <!-- Launch elevation mapping node. -->
     <node pkg="elevation_mapping" type="elevation_mapping" name="elevation_mapping" output="screen">
-        <rosparam command="load" file="$(find asd_core)/config/elevation_mapping/default.yaml" />
+        <rosparam if="$(arg using_zed)" command="load" file="$(find asd_core)/config/elevation_mapping/default_zed.yaml" />
+        <rosparam unless="$(arg using_zed)" command="load" file="$(find asd_core)/config/elevation_mapping/default.yaml" />
         <rosparam command="load" file="$(find elevation_mapping)/config/sensor_processors/perfect.yaml" />
     </node>
 </launch>
