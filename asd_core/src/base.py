@@ -105,7 +105,12 @@ def main():
             Ray-tracing will be used for appliciable areas.
             """
             start = dt()
-            SectorService_Instance.update_terrain()
+            try:
+                SectorService_Instance.update_terrain()
+            except Exception as why:
+                rospy.logerr("Problem in updating the map")
+                rospy.logerr(repr(why))
+                continue
 
             try:
                 with concurrent.futures.ThreadPoolExecutor() as executor:
