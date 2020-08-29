@@ -1,10 +1,22 @@
 <launch>
 
-    <arg name="rtabmapviz" default="false"/>
+    <arg name="rtabmapviz" default="false" />
+    <arg name="using_zed" default="false" />
+    <arg name="cmd_topic" default="/mouse_vel" />
+
+    <arg name="odom_topic" default="/odom" />
+    <arg name="odom_frame" default="odom" />
+
+    <arg name="rgb_image_topic" default="/camera/rgb/image_raw" />
+    <arg name="rgb_camera_info_topic" default="/camera/rgb/camera_info" />
+
+    <arg name="depth_image_topic" default="/camera/depth/image_raw" />
+    <arg name="depth_camera_info_topic" default="/camera/depth/camera_info" />
 
     <group ns="rtabmap">
         <node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen" args="-d">
-            <param name="database_path" type="string" value=""/> <!-- ~/.ros/rtabmap.db -->
+            <param name="database_path" type="string" value=""/>
+            <!-- ~/.ros/rtabmap.db -->
             <param name="frame_id" type="string" value="base_footprint"/>
             <param name="initial_pose" type="string" value="0 0 0 0 0 0" />
 
@@ -20,10 +32,11 @@
             <remap from="move_base" to="/move_base"/>
 
             <!-- inputs -->
-            <remap from="odom" to="/odom"/>
-            <remap from="rgb/image" to="/camera/rgb/image_raw"/>
-            <remap from="depth/image" to="/camera/depth/image_raw"/>
-            <remap from="rgb/camera_info" to="/camera/rgb/camera_info"/>
+            <remap from="odom" to="$(arg odom_topic)"/>
+            <remap from="rgb/image" to="$(arg rgb_image_topic)"/>
+            <remap from="rgb/camera_info" to="$(arg rgb_camera_info_topic)"/>
+            <remap from="depth/image" to="$(arg depth_image_topic)"/>
+            <remap from="depth/camera_info" to="$(arg depth_camera_info_topic)"/>
 
             <!-- output -->
             <remap from="grid_map" to="/map"/>
@@ -34,10 +47,14 @@
             <param name="imu_topic" value="/imu" />
             <!-- only used with VIO approaches -->
             <param name="wait_imu_to_init" value="true" />
-            <param name="gps_topic" value="/gps/fix" />
+            <!-- <param name="gps_topic" value="/gps/fix" /> -->
             <!-- gps async subscription -->
 
             <!-- Extra Parameters -->
+            <param name="GFTT/MinDistance" type="string" value="10"/>
+
+            <param if="$(arg using_zed)" name="Vis/CorFlowMaxLevel" type="string" value="5" />
+            <param if="$(arg using_zed)" name="Stereo/MaxDisparity" type="string" value="200" />
 
             <!--<param name="stereo" value="false" />
             <param name="visual_odometry" value="true" /> -->
@@ -51,7 +68,6 @@
             <param name="GFTT/MinDistance" type="string" value="10" />
             <param name="GFTT/QualityLevel" type="string" value="0.00001" />
             <param name="GFTT/QualityLevel" type="string" value="0.00001" />-->
-            <param name="GFTT/MinDistance" type="string" value="10"/>
         </node>
 
         <!-- visualization with rtabmapviz -->
@@ -70,7 +86,7 @@
     <!-- move_base -->
     <include file="$(find asd_core)/launch/move_base.launch">
         <arg name="move_forward_only" value="false"/>
-        <arg name="cmd_vel_topic" default="/mouse_vel" />
+        <arg name="cmd_vel_topic" default="$(arg cmd_topic)" />
     </include>
 
     <!-- Publish tf 'base_footprint' as pose.-->
