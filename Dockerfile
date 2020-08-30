@@ -28,7 +28,7 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
 # Add ROS related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base ros-melodic-dwa-local-planner \
-    ros-melodic-ar-track-alvar && python3 python3-pip python3-yaml \ 
+    ros-melodic-ar-track-alvar python3 python3-pip python3-yaml \ 
     python3-setuptools libpcl-dev python-catkin-tools && \
     pip3 install matplotlib numpy rpy2 rospkg catkin_pkg && \
     apt-get -qy autoremove && rm -rf /var/lib/apt/lists/*
