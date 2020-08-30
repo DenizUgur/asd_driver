@@ -27,8 +27,9 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
 
 # Add ROS related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-cv-bridge ros-melodic-ar-track-alvar \
-    python3 python3-pip python3-yaml python3-setuptools libpcl-dev python-catkin-tools && \
+    ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base ros-melodic-dwa-local-planner \
+    ros-melodic-ar-track-alvar && python3 python3-pip python3-yaml \ 
+    python3-setuptools libpcl-dev python-catkin-tools && \
     pip3 install matplotlib numpy rpy2 rospkg catkin_pkg && \
     apt-get -qy autoremove && rm -rf /var/lib/apt/lists/*
 
@@ -52,12 +53,9 @@ RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosde
 
 WORKDIR /catkin_ws
 ADD . /catkin_ws/src/asd_driver
-COPY start.sh /
+COPY start.sh /catkin_ws
 
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 RUN echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
-
-ENTRYPOINT []
-CMD ["/start.sh"]
