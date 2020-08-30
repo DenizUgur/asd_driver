@@ -44,6 +44,9 @@
         -Y $(arg yaw) 
         -param robot_description" />
 
+    <!-- Spawn Markers -->
+    <include file="$(find asd_test)/launch/markers.launch" />
+
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
         <param name="publish_frequency" type="double" value="200.0" />
     </node>

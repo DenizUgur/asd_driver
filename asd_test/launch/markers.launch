@@ -1,0 +1,31 @@
+<launch>
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_marker_sdf_1" args="-file /home/ozurover/.gazebo/models/marker1/model.sdf
+        -sdf
+        -model marker_1
+        -x 10.545
+        -y -8.457 
+        -z 0.2 
+        -R 0
+        -P 0
+        -Y 1.339" />
+
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_marker_sdf_2" args="-file /home/ozurover/.gazebo/models/marker2/model.sdf
+        -sdf
+        -model marker_2
+        -x 10.845
+        -y -8.457 
+        -z 0.2 
+        -R 0
+        -P 0
+        -Y 1.339" />
+
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_marker_sdf_3" args="-file /home/ozurover/.gazebo/models/marker3/model.sdf
+        -sdf
+        -model marker_3
+        -x 11.145
+        -y -8.457 
+        -z 0.2 
+        -R 0
+        -P 0
+        -Y 1.339" />
+</launch>

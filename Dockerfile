@@ -52,10 +52,12 @@ RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosde
 
 WORKDIR /catkin_ws
 ADD . /catkin_ws/src/asd_driver
+COPY start.sh /
 
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 RUN echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
 
-CMD ["./start.sh"]
+ENTRYPOINT []
+CMD ["/start.sh"]
