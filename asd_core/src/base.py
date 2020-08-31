@@ -1,5 +1,6 @@
 import rospy
 import time
+import yaml
 from matplotlib import pyplot as plt
 from timeit import default_timer as dt
 import numpy as np
@@ -8,6 +9,7 @@ import concurrent.futures
 # Import internals
 from internal.sector_service import SectorService
 from internal.driver import Driver
+from internal.lrs import LRS
 from sdpath.lcp import LCP
 
 # Import types
@@ -23,27 +25,23 @@ def main():
     global SectorService_Instance, Driver_Instance
 
     rospy.init_node("asd_core")
-
-    # TODO: initial rotation? (ARTag's to calibrate and save this config for crash rec.)
-
-    print("Enter current location as X-Y coordinates. It needs to be in meters.")
-    x = 0  # float(input("X="))
-    y = 0  # float(input("Y="))
+    config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
 
     # Initialize Modules
     SectorService_Instance = SectorService()
     Driver_Instance = Driver()
     LCP_Instance = LCP()
+    LRS((config["init_pos"]["x"], config["init_pos"]["y"]), Driver_Instance)
 
     # Subscribe to relevant topics and services
-    rospy.Subscriber("/base_footprint_pose", PoseWithCovarianceStamped, route)
+    rospy.Subscriber(config["pose_with_covariance"], PoseWithCovarianceStamped, route)
 
     # Wait for elevation map to be available
     rospy.loginfo("Waiting for topics to become online...")
     try:
         rospy.wait_for_service("/elevation_mapping/get_submap", timeout=60)
         rospy.wait_for_message(
-            "/base_footprint_pose", PoseWithCovarianceStamped, timeout=10
+            config["pose_with_covariance"], PoseWithCovarianceStamped, timeout=10
         )
         rospy.loginfo("OK!")
     except rospy.ROSException as why:
@@ -56,8 +54,6 @@ def main():
         error_count = 0
         loop = 0
         last_time = 10
-        Driver_Instance.create_zero_vector(x, y)
-
         rospy.loginfo("Running the control loop")
         while not rospy.core.is_shutdown():
             loop += 1

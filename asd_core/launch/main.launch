@@ -51,23 +51,11 @@
             <!-- gps async subscription -->
 
             <!-- Extra Parameters -->
-            <param name="GFTT/MinDistance" type="string" value="10"/>
-
             <param if="$(arg using_zed)" name="Vis/CorFlowMaxLevel" type="string" value="5" />
             <param if="$(arg using_zed)" name="Stereo/MaxDisparity" type="string" value="200" />
-
-            <!--<param name="stereo" value="false" />
-            <param name="visual_odometry" value="true" /> -->
-
-            <!--<param name="Odom/Strategy" type="string" value="0" />
-            <param name="Vis/EstimationType" type="string" value="1" />
-            <param name="Vis/MaxDepth" type="string" value="0" />
+            <param name="visual_odometry" value="true" />
+            <param name="Odom/Strategy" type="string" value="1" />
             <param name="Odom/GuessMotion" type="string" value="true" />
-            <param name="Vis/MinInliers" type="string" value="10" />
-            <param name="OdomF2M/MaxSize" type="string" value="1000" />
-            <param name="GFTT/MinDistance" type="string" value="10" />
-            <param name="GFTT/QualityLevel" type="string" value="0.00001" />
-            <param name="GFTT/QualityLevel" type="string" value="0.00001" />-->
         </node>
 
         <!-- visualization with rtabmapviz -->
@@ -79,30 +67,18 @@
             <param name="frame_id" type="string" value="base_footprint"/>
             <param name="approx_sync" type="bool" value="true"/>
 
-            <remap from="odom" to="/odom"/>
+            <remap from="odom" to="$(arg odom_frame)"/>
         </node>
     </group>
 
-    <group if="$(arg using_zed)">
-        <arg name="marker_size" default="20.0" />
-        <arg name="max_new_marker_error" default="0.08" />
-        <arg name="max_track_error" default="0.2" />
-
-        <arg name="cam_image_topic" default="$(arg depth_image_topic)" />
-        <arg name="cam_info_topic" default="$(arg depth_camera_info_topic)" />
-        <arg name="output_frame" default="/map" />
-
-        <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkers" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
-    </group>
-
-    <group unless="$(arg using_zed)">
+    <group>
         <arg name="marker_size" default="20.0" />
         <arg name="max_new_marker_error" default="0.08" />
         <arg name="max_track_error" default="0.2" />
 
         <arg name="cam_image_topic" default="$(arg rgb_image_topic)" />
         <arg name="cam_info_topic" default="$(arg rgb_camera_info_topic)" />
-        <arg name="output_frame" default="/map" />
+        <arg name="output_frame" default="map" />
 
         <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
     </group>
@@ -113,9 +89,9 @@
         <arg name="cmd_vel_topic" default="$(arg cmd_topic)" />
     </include>
 
-    <!-- Publish tf 'base_footprint' as pose.-->
-    <node pkg="asd_core" type="tf_to_pose_publisher.py" name="leo_pose_publisher">
-        <param name="from_frame" type="string" value="odom" />
+    <!-- Publish tf 'base_footprint' as pose. -->
+    <node pkg="asd_core" unless="$(arg using_zed)" type="tf_to_pose_publisher.py" name="leo_pose_publisher">
+        <param name="from_frame" type="string" value="$(arg odom_frame)" />
         <param name="to_frame" type="string" value="base_footprint" />
     </node>
 
