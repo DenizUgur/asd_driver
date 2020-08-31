@@ -1,5 +1,6 @@
 import rospy
 import math
+import yaml
 import numpy as np
 import actionlib
 from threading import Thread
@@ -26,20 +27,28 @@ class Status(Enum):
 
 
 class Driver:
+    XY_TOLERANCE = 0.80  # meters
+
     def __init__(self):
+        self.config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
         self.path_pub = rospy.Publisher("/asd_core/path", Path, queue_size=10)
         self.status_sub = rospy.Subscriber(
             "/move_base/status", GoalStatusArray, self.update_status
         )
 
-        self.worker = Thread(name="daemon_worker", target=self.daemon_worker)
+        self.worker = Thread(name="driver_worker", target=self.daemon_worker)
         self.worker.setDaemon(True)
         self.worker.start()
 
         self.target, self.source, self.latch, self.status = None, None, True, 0
+        self.cx, self.cy = 0, 0
+        assert self.XY_TOLERANCE / 2 >= 0.40  # defined in move_base params
 
     def update_status(self, payload):
-        self.status = payload.status_list.pop().status
+        if (len(payload.status_list) > 0):
+            self.status = payload.status_list.pop().status
+        else:
+            self.status = Status.PENDING
 
     def daemon_worker(self):
         try:
@@ -62,17 +71,18 @@ class Driver:
                 lambda payload: path.__init__([extract(x) for x in payload.poses]),
             )
             rospy.Subscriber(
-                "/base_footprint_pose",
+                self.config["pose_with_covariance"],
                 PoseWithCovarianceStamped,
                 lambda payload: pose.update({"pose": payload}),
             )
 
-            rospy.wait_for_message("/base_footprint_pose", PoseWithCovarianceStamped)
+            rospy.wait_for_message(self.config["pose_with_covariance"], PoseWithCovarianceStamped)
             rospy.wait_for_message("/asd_core/path", Path)
 
             rospy.loginfo("Driver Daemon online")
 
             will_rotate_to_first = True
+            last_dist = 999
             while not rospy.core.is_shutdown():
                 try:
                     if len(path) > 0:
@@ -85,8 +95,19 @@ class Driver:
                             nx, ny, rot = path_copy.pop(0)
                             a = math.atan2(ny - y, nx - x)
                             dist = math.sqrt((y - ny) ** 2 + (x - nx) ** 2)
+                            dist_t = math.sqrt((y - ty) ** 2 + (x - tx) ** 2)
+
                             waiting = True
-                            if ta - math.pi / 2 < a < ta + math.pi / 2 and dist >= 0.45:
+                            if dist_t <= self.XY_TOLERANCE:
+                                if dist_t < last_dist:
+                                    last_dist = dist
+                                else:
+                                    break
+
+                            if (
+                                ta - math.pi / 2 < a < ta + math.pi / 2
+                                and dist >= self.XY_TOLERANCE / 2
+                            ):
                                 waiting = False
                                 break
 
@@ -108,9 +129,10 @@ class Driver:
                             if will_rotate_to_first:
                                 client.wait_for_result()
                                 will_rotate_to_first = False
-                                path = []
                         else:
+                            client.cancel_all_goals()
                             will_rotate_to_first = True
+                            last_dist = 999
 
                 except Exception as why:
                     rospy.logerr("Error in Driver... Recovering.")
@@ -144,7 +166,7 @@ class Driver:
             x, y = self.get_current_loc()
             tx, ty = self.target
             reached = (
-                1.0 >= math.sqrt((x - tx) ** 2 + (y - ty) ** 2)
+                self.XY_TOLERANCE >= math.sqrt((x - tx) ** 2 + (y - ty) ** 2)
                 and self.status != Status.ACTIVE
             )
 

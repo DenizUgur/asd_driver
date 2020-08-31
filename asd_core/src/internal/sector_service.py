@@ -3,6 +3,7 @@ import numpy as np
 import math
 import time
 import rospy
+import yaml
 from grid_map_msgs.srv import GetGridMap
 import multiprocessing as mp
 import queue
@@ -211,11 +212,10 @@ class RayTracer:
 
 class SectorService:
     def __init__(self):
+        self.config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
         self.terrain = None
         self.pose = None
-        self.local_size = 7.0  # meters
-        self.resolution = 0.05  # meters
-        assert self.local_size / self.resolution % 2 == 0
+        assert self.config["local_size"] / self.config["resolution"] % 2 == 0
 
         self.RT = RayTracer()
         self.get_submap = rospy.ServiceProxy(
@@ -230,8 +230,8 @@ class SectorService:
             "odom",
             self.pose.position.x,
             self.pose.position.y,
-            self.local_size,
-            self.local_size,
+            self.config["local_size"],
+            self.config["local_size"],
             ["elevation"],
         ).map
         raw = payload.data[0]
@@ -240,12 +240,12 @@ class SectorService:
         self.terrain = np.rot90(self.terrain, k=2) * 100
 
     def get_extent(self):
-        c = (self.local_size / self.resolution) / 2 + 1
+        c = (self.config["local_size"] / self.config["resolution"]) / 2 + 1
         x = self.pose.position.x
         y = self.pose.position.y
-        xmin = x - (c * self.resolution)
-        ymin = y - (c * self.resolution)
-        return (xmin, xmin + self.local_size, ymin, ymin + self.local_size)
+        xmin = x - (c * self.config["resolution"])
+        ymin = y - (c * self.config["resolution"])
+        return (xmin, xmin + self.config["local_size"], ymin, ymin + self.config["local_size"])
 
     def update_pose(self, payload):
         self.pose = payload.pose
