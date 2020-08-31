@@ -20,7 +20,7 @@ RUN sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ss
 # Add R
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 && \
     add-apt-repository -y 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/' && \
-    apt-get update && apt-get install -y --no-install-recommends gfortran r-base libgeos-dev && rm -rf /var/lib/apt/lists/* && \
+    apt-get update && apt-get install -y --no-install-recommends r-base-dev r-base libgeos-dev && rm -rf /var/lib/apt/lists/* && \
     echo "install.packages(\"gdistance\", repos=\"https://cran.rstudio.com\")" | R --no-save && \
     echo "install.packages(\"rgeos\", repos=\"https://cran.rstudio.com\")" | R --no-save
 
