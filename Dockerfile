@@ -7,7 +7,7 @@ ENV ROS_IP 127.0.0.1
 ENV ROS_MASTER_URI http://127.0.0.1:11311
 
 # Initialization
-RUN apt-get update && \
+RUN apt-get update && apt-get upgrade -y \
     apt-get install -y --no-install-recommends openssh-server curl ssh \ 
     apt-transport-https software-properties-common && \
     rm -rf /var/lib/apt/lists/*
@@ -28,9 +28,8 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
 # Add ROS related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base ros-melodic-dwa-local-planner \
-    ros-melodic-ar-track-alvar python3 python3-pip python3-yaml \ 
-    python3-setuptools libpcl-dev python-catkin-tools && \
-    pip3 install matplotlib numpy rpy2 rospkg catkin_pkg && \
+    ros-melodic-ar-track-alvar python3 python3-pip python3-setuptools libpcl-dev python-catkin-tools && \
+    pip3 install matplotlib numpy rpy2 rospkg catkin_pkg PyYAML && \
     apt-get -qy autoremove && rm -rf /var/lib/apt/lists/*
 
 # Downlaod necessary repositories
@@ -50,6 +49,9 @@ RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src \
 RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosdep init && rosdep update && \
     rosdep install --from-paths /catkin_ws/src/ --ignore-src --rosdistro melodic -r -y && \
     rm -rf /var/lib/apt/lists/*
+
+# Any additional library or packages
+RUN apt-get update && apt-get install -y --no-install-recommends vim && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /catkin_ws
 ADD . /catkin_ws/src/asd_driver
