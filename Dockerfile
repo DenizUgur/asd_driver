@@ -7,7 +7,7 @@ ENV ROS_IP 127.0.0.1
 ENV ROS_MASTER_URI http://127.0.0.1:11311
 
 # Initialization
-RUN apt-get update && apt-get upgrade -y \
+RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends openssh-server curl ssh \ 
     apt-transport-https software-properties-common && \
     rm -rf /var/lib/apt/lists/*
