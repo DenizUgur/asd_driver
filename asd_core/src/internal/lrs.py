@@ -45,13 +45,16 @@ class Marker:
 
 
 class LRS:
-    def __init__(self, initial_loc, driver):
+    def __init__(self, driver):
         self.config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
         self.driver_instance = driver
         self.dictionary = dict()
         self.pose = None
 
-        self.initial_loc = initial_loc
+        self.initial_loc = (
+            self.config["inital_position"]["x"],
+            self.config["inital_position"]["y"],
+        )
         self.origin_mcp_to_rcp = None
         self.init_state = True
         self.visible_landmarks = 0
@@ -71,11 +74,15 @@ class LRS:
                 "/ar_pose_marker", AlvarMarkers, lambda p: self.commit(p.markers),
             )
             rospy.Subscriber(
-                self.config["pose_with_covariance"], PoseWithCovarianceStamped, self.update_pose
+                self.config["pose_with_covariance"],
+                PoseWithCovarianceStamped,
+                self.update_pose,
             )
 
             rospy.wait_for_message("/ar_pose_marker", AlvarMarkers)
-            rospy.wait_for_message(self.config["pose_with_covariance"], PoseWithCovarianceStamped)
+            rospy.wait_for_message(
+                self.config["pose_with_covariance"], PoseWithCovarianceStamped
+            )
 
             # Save starting point and rcp pose for that
             self.origin_mcp_to_rcp = (
@@ -94,9 +101,7 @@ class LRS:
                             a, x, y = m.loc()
                             if a == 1 and not m.logged:
                                 rospy.loginfo(
-                                    "Locked on Marker {} -> ({}, {})".format(
-                                        m_id, x, y
-                                    )
+                                    "Locked on Marker {} -> ({}, {})".format(m_id, x, y)
                                 )
                                 m.logged = True
 
@@ -138,7 +143,6 @@ class LRS:
 
 
 if __name__ == "__main__":
-    LRS((0, 0), None)
-
+    LRS(None)
     rospy.init_node("test")
     rospy.spin()

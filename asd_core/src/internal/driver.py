@@ -129,6 +129,7 @@ class Driver:
                             if will_rotate_to_first:
                                 client.wait_for_result()
                                 will_rotate_to_first = False
+                                path = []
                         else:
                             client.cancel_all_goals()
                             will_rotate_to_first = True

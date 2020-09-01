@@ -128,5 +128,8 @@ class LCP:
         if not self.valid_target:
             LCP = np.append(LCP, [self.ex, self.ey])
 
+        COST = np.array(ro.r.COST_DF, dtype=float).reshape(self.nr, self.nc)
+        COST = np.flip(COST, axis=0)
+
         self.result = None
-        return rdp(LCP.reshape(-1, 2), 0.1)
+        return rdp(LCP.reshape(-1, 2), 0.1), COST

@@ -54,9 +54,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends vim && rm -rf /
 
 WORKDIR /catkin_ws
 ADD . /catkin_ws/src/asd_driver
-COPY start.sh /catkin_ws
 
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 RUN echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
+
+COPY start.sh /
+
+ENTRYPOINT []
+CMD ["/start.sh"]

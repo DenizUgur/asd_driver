@@ -31,7 +31,11 @@ def main():
     SectorService_Instance = SectorService()
     Driver_Instance = Driver()
     LCP_Instance = LCP()
-    LRS((config["init_pos"]["x"], config["init_pos"]["y"]), Driver_Instance)
+    LRS(Driver_Instance)
+
+    while 1:
+        # TODO: Find first landmark
+        break
 
     # Subscribe to relevant topics and services
     rospy.Subscriber(config["pose_with_covariance"], PoseWithCovarianceStamped, route)
@@ -116,7 +120,6 @@ def main():
                     last_time = dt() - start
             except concurrent.futures.TimeoutError:
                 rospy.logerr("Problem in Alpha Thread")
-                local_map = [None] * 3
                 error_count += 1
                 last_time = 10
                 continue
@@ -141,20 +144,19 @@ def main():
                     Driver_Instance.get_current_loc(),
                     (x + Driver_Instance.cx, y + Driver_Instance.cy),
                 )
-                PATH = LCP_Instance.calculate()
+                PATH, COST = LCP_Instance.calculate()
             except Exception as why:
                 rospy.logerr("An error occured on LCP!")
                 rospy.logerr(repr(why))
                 continue
-            end = dt()
 
-            if end - start > 2:
+            if dt() - start > 2:
                 rospy.logwarn(
-                    "Took {:.2f} seconds to plot the route".format(end - start)
+                    "Took {:.2f} seconds to plot the route".format(dt() - start)
                 )
             else:
                 rospy.loginfo(
-                    "Took {:.2f} seconds to plot the route".format(end - start)
+                    "Took {:.2f} seconds to plot the route".format(dt() - start)
                 )
 
             Driver_Instance.follow_path(PATH, r)
