@@ -13,9 +13,12 @@ jobs:
 
       - name: Publish to Registry
         uses: elgohr/Publish-Docker-Github-Action@master
+        env:
+          FREEDOM_URL: ${{ secrets.FREEDOM_URL }}
         with:
           name: denizugur/asd_driver/asd_image
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
           cache: true
+          buildargs: FREEDOM_URL

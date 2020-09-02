@@ -40,10 +40,11 @@ RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src \
     && mkdir asd_driver
 
 # Install Freedom agent
-# ARG FREEDOM_URL
-# RUN curl -sSf $FREEDOM_URL | python \
-#   && rm -rf /var/lib/apt/lists/* \
-#   && rm -rf /root/.cache/pip/* 
+ARG FREEDOM_URL
+RUN curl -sSf $FREEDOM_URL | \
+    sed 's:a/nmkK3DkqZEB/ngrok-2.2.8-linux-arm64.zip:c/4VmDzA7iaHb/ngrok-stable-linux-arm64.zip:' | python \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /root/.cache/pip/* 
 
 RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosdep init && rosdep update && \
     rosdep install --from-paths /catkin_ws/src/ --ignore-src --rosdistro melodic -r -y && \
@@ -57,8 +58,8 @@ ADD . /catkin_ws/src/asd_driver
 
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 
-RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
-RUN echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
+RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc && \
+    echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
 
 COPY start.sh /
 
