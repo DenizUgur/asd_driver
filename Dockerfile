@@ -33,12 +33,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python-pip python3 python3-pip python3-setuptools python3-cffi \ 
-    python3-numpy python3-rpy2 python-catkin-tools && \
+    python-pip python3 python3-pip python3-setuptools python-catkin-tools && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install rospkg catkin_pkg PyYAML && \
-    apt-get -qy autoremove && rm -rf /var/lib/apt/lists/*
+RUN pip3 install wheel && pip3 install numpy rpy2 rospkg \
+    catkin_pkg PyYAML && apt-get -qy autoremove && \
+    rm -rf /var/lib/apt/lists/*
 
 # Downlaod necessary repositories
 RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src \ 
@@ -61,6 +61,9 @@ RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosde
 
 # Any additional library or packages
 RUN apt-get update && apt-get install -y --no-install-recommends vim && rm -rf /var/lib/apt/lists/*
+
+# Build big packages
+RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 
 WORKDIR /catkin_ws
 ADD . /catkin_ws/src/asd_driver
