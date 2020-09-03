@@ -33,10 +33,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python-pip python3 python3-pip python3-setuptools python-catkin-tools && \
+    python-pip python3 python3-pip python3-setuptools \
+    python3-cffi python-catkin-tools && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install wheel && pip3 install numpy rpy2 rospkg \
+RUN pip3 install wheel && pip3 install numpy rpy2==3.3.5 rospkg \
     catkin_pkg PyYAML && apt-get -qy autoremove && \
     rm -rf /var/lib/apt/lists/*
 
