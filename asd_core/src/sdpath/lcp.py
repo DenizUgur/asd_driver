@@ -16,6 +16,7 @@ class LCP:
     TIMEOUT = 10
 
     def __init__(self, dem=None):
+        rpy2.robjects.r['options'](warn=-1)
         self.raster = importr("raster")
         self.sp = importr("sp")
 

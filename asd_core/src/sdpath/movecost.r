@@ -1,4 +1,3 @@
-options(warn = -1)
 movecost <- function (dtm, origin, destin, time="s", resolution=0.05) {
 
   cost_function <- function(x){ 

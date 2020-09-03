@@ -72,7 +72,7 @@
     </group>
 
     <group>
-        <arg name="marker_size" default="20.0" />
+        <arg name="marker_size" default="14.6" />
         <arg name="max_new_marker_error" default="0.08" />
         <arg name="max_track_error" default="0.2" />
 
