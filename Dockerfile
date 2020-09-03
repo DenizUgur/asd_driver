@@ -7,7 +7,7 @@ ENV ROS_MASTER_URI http://127.0.0.1:11311
 
 # Initialization
 RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends openssh-server curl ssh \ 
+    apt-get install -y --no-install-recommends aptitude openssh-server curl ssh \ 
     apt-transport-https software-properties-common && \
     rm -rf /var/lib/apt/lists/*
 
@@ -20,15 +20,24 @@ RUN sed -i 's/#*PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ss
 # Add R
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 && \
     add-apt-repository -y 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/' && \
-    apt-get update && apt-get install -y --no-install-recommends r-base-dev r-base libgeos-dev && rm -rf /var/lib/apt/lists/* && \
+    apt-get update && aptitude install -y r-base-core r-base r-base-dev libgeos-dev && \
+    rm -rf /var/lib/apt/lists/* && \
     echo "install.packages(\"gdistance\", repos=\"https://cran.rstudio.com\")" | R --no-save && \
     echo "install.packages(\"rgeos\", repos=\"https://cran.rstudio.com\")" | R --no-save
 
 # Add ROS related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base ros-melodic-dwa-local-planner \
-    ros-melodic-ar-track-alvar python3 python3-pip python3-setuptools libpcl-dev python-catkin-tools && \
-    pip3 install matplotlib numpy rpy2 rospkg catkin_pkg PyYAML && \
+    ros-melodic-ar-track-alvar libpcl-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python related packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python-pip python3 python3-pip python3-setuptools python3-cffi \ 
+    python3-numpy python3-rpy2 python-catkin-tools && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install rospkg catkin_pkg PyYAML && \
     apt-get -qy autoremove && rm -rf /var/lib/apt/lists/*
 
 # Downlaod necessary repositories
