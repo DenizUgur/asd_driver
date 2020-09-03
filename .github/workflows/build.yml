@@ -30,7 +30,7 @@ jobs:
             --cache-to "type=local,dest=/tmp/.buildx-cache" \
             --platform linux/arm64 \
             --output "type=image,push=false" \
-            --tag asd_driver/asd_image:latest \
+            --tag denizugur/asd_driver:latest \
             --build-arg FREEDOM_URL="${{ secrets.FREEDOM_URL }}" \
             --file ./Dockerfile ./
 
@@ -45,10 +45,10 @@ jobs:
           --cache-to "type=local,dest=/tmp/.buildx-cache" \
           --platform linux/arm64 \
           --output "type=image,push=true" \
-          --tag asd_driver/asd_image:latest \
+          --tag denizugur/asd_driver:latest \
           --build-arg FREEDOM_URL="${{ secrets.FREEDOM_URL }}" \
           --file ./Dockerfile ./
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect asd_driver/asd_image:latest
+          docker buildx imagetools inspect denizugur/asd_driver:latest
