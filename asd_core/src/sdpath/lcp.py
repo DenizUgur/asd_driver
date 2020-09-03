@@ -1,3 +1,4 @@
+# pylint: disable=no-member relative-beyond-top-level
 import rpy2.robjects as ro
 import rpy2.robjects.numpy2ri
 from rpy2.robjects.packages import importr
@@ -12,7 +13,6 @@ rpy2.robjects.numpy2ri.activate()
 
 
 class LCP:
-    # pylint: disable=no-member
     TIMEOUT = 10
 
     def __init__(self, dem=None):
@@ -132,4 +132,4 @@ class LCP:
         COST = np.flip(COST, axis=0)
 
         self.result = None
-        return rdp(LCP.reshape(-1, 2), 0.1), COST
+        return rdp(LCP.reshape(-1, 2), 0.15), COST

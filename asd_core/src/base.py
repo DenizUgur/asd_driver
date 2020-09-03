@@ -1,14 +1,14 @@
 import rospy
 import time
+import signal
 import yaml
-from matplotlib import pyplot as plt
 from timeit import default_timer as dt
 import numpy as np
 import concurrent.futures
 
 # Import internals
 from internal.sector_service import SectorService
-from internal.driver import Driver
+from internal.driver import Driver, DriverStatus
 from internal.lrs import LRS
 from sdpath.lcp import LCP
 
@@ -21,10 +21,17 @@ def route(payload):
     Driver_Instance.update_pose(payload.pose)
 
 
+def signal_handler(sig, frame):
+    rospy.logerr("User cancelled the task!")
+    Driver_Instance.halt()
+
+
 def main():
     global SectorService_Instance, Driver_Instance
 
+    # System Initialization
     rospy.init_node("asd_core")
+    signal.signal(signal.SIGINT, signal_handler)
     config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
 
     # Initialize Modules
@@ -65,7 +72,10 @@ def main():
             This is the main loop. Control sequence will live here. 
             Every step is clearly documented with their purpose.
             """
-            if Driver_Instance.is_target_reached():
+            if (
+                Driver_Instance.is_target_reached()
+                or Driver_Instance.flag == DriverStatus.HALT
+            ):
                 rospy.loginfo(
                     "Current location: x={:.2f} y={:.2f} theta={:.0f}".format(
                         *Driver_Instance.get_current_loc(True)
@@ -89,6 +99,7 @@ def main():
                             float(input("Y=")),
                             float(input("R=")),
                         )
+                        Driver_Instance.flag = DriverStatus.RESUME
                         break
                     except ValueError as why:
                         rospy.logerr(repr(why))

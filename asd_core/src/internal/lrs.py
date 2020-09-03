@@ -52,8 +52,8 @@ class LRS:
         self.pose = None
 
         self.initial_loc = (
-            self.config["inital_position"]["x"],
-            self.config["inital_position"]["y"],
+            self.config["initial_position"]["x"],
+            self.config["initial_position"]["y"],
         )
         self.origin_mcp_to_rcp = None
         self.init_state = True

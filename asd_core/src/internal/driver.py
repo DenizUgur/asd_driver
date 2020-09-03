@@ -26,6 +26,11 @@ class Status(Enum):
     LOST = 9
 
 
+class DriverStatus(Enum):
+    HALT = 0
+    RESUME = 1
+
+
 class Driver:
     XY_TOLERANCE = 0.80  # meters
 
@@ -42,10 +47,11 @@ class Driver:
 
         self.target, self.source, self.latch, self.status = None, None, True, 0
         self.cx, self.cy = 0, 0
+        self.flag = DriverStatus.RESUME
         assert self.XY_TOLERANCE / 2 >= 0.40  # defined in move_base params
 
     def update_status(self, payload):
-        if (len(payload.status_list) > 0):
+        if len(payload.status_list) > 0:
             self.status = payload.status_list.pop().status
         else:
             self.status = Status.PENDING
@@ -76,7 +82,9 @@ class Driver:
                 lambda payload: pose.update({"pose": payload}),
             )
 
-            rospy.wait_for_message(self.config["pose_with_covariance"], PoseWithCovarianceStamped)
+            rospy.wait_for_message(
+                self.config["pose_with_covariance"], PoseWithCovarianceStamped
+            )
             rospy.wait_for_message("/asd_core/path", Path)
 
             rospy.loginfo("Driver Daemon online")
@@ -85,7 +93,12 @@ class Driver:
             last_dist = 999
             while not rospy.core.is_shutdown():
                 try:
-                    if len(path) > 0:
+                    if self.flag == DriverStatus.HALT:
+                        will_rotate_to_first = True
+                        last_dist = 999
+                        client.cancel_all_goals()
+
+                    if len(path) > 0 and self.flag == DriverStatus.RESUME:
                         x, y, _ = extract(pose.get("pose").pose)
                         tx, ty, _ = path[-1]
                         ta = math.atan2(ty - y, tx - x)
@@ -100,7 +113,7 @@ class Driver:
                             waiting = True
                             if dist_t <= self.XY_TOLERANCE:
                                 if dist_t < last_dist:
-                                    last_dist = dist
+                                    last_dist = dist_t
                                 else:
                                     break
 
@@ -146,6 +159,10 @@ class Driver:
     def update_pose(self, payload):
         self.pose = payload.pose
 
+    def halt(self):
+        self.latch = True
+        self.flag = DriverStatus.HALT
+
     def create_zero_vector(self, cx, cy):
         self.cx = self.pose.position.x - cx
         self.cy = self.pose.position.y - cy
@@ -170,6 +187,9 @@ class Driver:
                 self.XY_TOLERANCE >= math.sqrt((x - tx) ** 2 + (y - ty) ** 2)
                 and self.status != Status.ACTIVE
             )
+
+        if self.flag == DriverStatus.HALT:
+            return True
 
         self.latch = reached
         return reached
