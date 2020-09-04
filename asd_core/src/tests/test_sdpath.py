@@ -10,7 +10,7 @@ class TestLCP(unittest.TestCase):
         self.lcp = LCP()
         self.lcp.process_dem(np.zeros((50, 50)))
         self.lcp.set_points((0, 0), (30, 30))
-        path, _ = self.lcp.calculate()
+        path = self.lcp.calculate()
         self.assertIsInstance(path, np.ndarray)
 
 
