@@ -9,7 +9,7 @@ from enum import Enum
 from actionlib_msgs.msg import GoalStatus, GoalStatusArray
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Vector3, Twist
 from std_msgs.msg import Header
 
 
@@ -32,11 +32,10 @@ class DriverStatus(Enum):
 
 
 class Driver:
-    XY_TOLERANCE = 0.80  # meters
-
     def __init__(self):
         self.config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
         self.path_pub = rospy.Publisher("/asd_core/path", Path, queue_size=10)
+        self.cmd_vel_pub = rospy.Publisher(self.config["cmd_vel"], Twist, queue_size=10)
         self.status_sub = rospy.Subscriber(
             "/move_base/status", GoalStatusArray, self.update_status
         )
@@ -46,15 +45,9 @@ class Driver:
         self.worker.start()
 
         self.target, self.source, self.latch, self.status = None, None, True, 0
-        self.cx, self.cy = 0, 0
         self.flag = DriverStatus.RESUME
-        assert self.XY_TOLERANCE / 2 >= 0.40  # defined in move_base params
-
-    def update_status(self, payload):
-        if len(payload.status_list) > 0:
-            self.status = payload.status_list.pop().status
-        else:
-            self.status = Status.PENDING
+        self.M_T = None
+        assert self.config["xy_tolerance"] / 2 >= 0.25  # defined in move_base params
 
     def daemon_worker(self):
         try:
@@ -67,7 +60,7 @@ class Driver:
             path = []
 
             client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-            rospy.loginfo("Waiting for server to become online.")
+            rospy.loginfo("Waiting for actionlib server to become online.")
             client.wait_for_server()
             client.cancel_all_goals()
 
@@ -77,13 +70,13 @@ class Driver:
                 lambda payload: path.__init__([extract(x) for x in payload.poses]),
             )
             rospy.Subscriber(
-                self.config["pose_with_covariance"],
+                self.config["pose_with_covariance_topic"],
                 PoseWithCovarianceStamped,
                 lambda payload: pose.update({"pose": payload}),
             )
 
             rospy.wait_for_message(
-                self.config["pose_with_covariance"], PoseWithCovarianceStamped
+                self.config["pose_with_covariance_topic"], PoseWithCovarianceStamped
             )
             rospy.wait_for_message("/asd_core/path", Path)
 
@@ -111,7 +104,7 @@ class Driver:
                             dist_t = math.sqrt((y - ty) ** 2 + (x - tx) ** 2)
 
                             waiting = True
-                            if dist_t <= self.XY_TOLERANCE:
+                            if dist_t <= self.config["xy_tolerance"]:
                                 if dist_t < last_dist:
                                     last_dist = dist_t
                                 else:
@@ -119,7 +112,7 @@ class Driver:
 
                             if (
                                 ta - math.pi / 2 < a < ta + math.pi / 2
-                                and dist >= self.XY_TOLERANCE / 2
+                                and dist >= self.config["xy_tolerance"]
                             ):
                                 waiting = False
                                 break
@@ -137,12 +130,16 @@ class Driver:
                             # set orientation
                             goal.target_pose.pose.orientation = rot
 
-                            client.send_goal(goal)
-
                             if will_rotate_to_first:
+                                goal.target_pose.pose.position.x = x
+                                goal.target_pose.pose.position.y = y
+                                client.send_goal(goal)
+
                                 client.wait_for_result()
                                 will_rotate_to_first = False
                                 path = []
+                            else:
+                                client.send_goal(goal)
                         else:
                             client.cancel_all_goals()
                             will_rotate_to_first = True
@@ -159,21 +156,44 @@ class Driver:
     def update_pose(self, payload):
         self.pose = payload.pose
 
+    def update_status(self, payload):
+        if len(payload.status_list) > 0:
+            self.status = payload.status_list.pop().status
+        else:
+            self.status = Status.PENDING
+
+    def move(self, dl=0, da=0):
+        msg = Twist()
+        linear = Vector3()
+        angular = Vector3()
+
+        linear.x = dl
+        linear.y = 0
+        linear.z = 0
+        angular.x = 0
+        angular.y = 0
+        angular.z = da
+
+        msg.linear = linear
+        msg.angular = angular
+
+        self.cmd_vel_pub.publish(msg)
+
     def halt(self):
         self.latch = True
         self.flag = DriverStatus.HALT
+        self.move()
 
-    def create_zero_vector(self, cx, cy):
-        self.cx = self.pose.position.x - cx
-        self.cy = self.pose.position.y - cy
+    def convert(self, cx, cy):
+        t = np.dot(np.array([cx, cy, 1]), np.linalg.inv(self.M_T))
+        return t[0], t[1]
 
     def get_current_loc(self, relative=False):
         if relative:
-            return (
-                self.pose.position.x - self.cx,
-                self.pose.position.y - self.cy,
-                math.degrees(math.acos(self.pose.orientation.w) * 2),
+            t = np.dot(
+                np.array([self.pose.position.x, self.pose.position.y, 1]), self.M_T
             )
+            return t[0], t[1]
         return self.pose.position.x, self.pose.position.y
 
     def is_target_reached(self):
@@ -184,7 +204,7 @@ class Driver:
             x, y = self.get_current_loc()
             tx, ty = self.target
             reached = (
-                self.XY_TOLERANCE >= math.sqrt((x - tx) ** 2 + (y - ty) ** 2)
+                self.config["xy_tolerance"] >= math.sqrt((x - tx) ** 2 + (y - ty) ** 2)
                 and self.status != Status.ACTIVE
             )
 
@@ -209,7 +229,7 @@ class Driver:
                 )
             )
 
-    def follow_path(self, path, fr):
+    def follow_path(self, path):
         msg = Path()
         msg.header = Header()
         msg.header.stamp = rospy.Time.now()
@@ -224,7 +244,8 @@ class Driver:
                 nx, ny = path[i + 1]
                 r = math.atan2(ny - y, nx - x)
             else:
-                r = math.radians(fr)
+                nx, ny = path[i - 1]
+                r = math.atan2(y - ny, x - nx)
 
             pose = PoseStamped()
             pose.header = msg.header
