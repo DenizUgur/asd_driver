@@ -221,9 +221,11 @@ class LRS:
                                         rospy.loginfo_once(
                                             "Transformation Matrix is established!"
                                         )
-                                        self.M_TRANS = np.dstack(
-                                            (self.M_TRANS[:, :, 1:], M_trans)
-                                        )
+                                        m = np.abs(M_trans - np.median(self.M_TRANS, axis=2))
+                                        if 1 > np.sum(m) > -1:
+                                            self.M_TRANS = np.dstack(
+                                                (self.M_TRANS[:, :, 1:], M_trans)
+                                            )
                                     else:
                                         self.M_TRANS = np.dstack(
                                             (self.M_TRANS, M_trans)
