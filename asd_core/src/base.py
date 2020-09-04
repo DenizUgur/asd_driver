@@ -1,6 +1,9 @@
 import rospy
+import sys
+import traceback
 import time
 import signal
+import argparse
 import yaml
 from timeit import default_timer as dt
 import numpy as np
@@ -26,7 +29,7 @@ def signal_handler(sig, frame):
     Driver_Instance.halt()
 
 
-def main():
+def main(args):
     global SectorService_Instance, Driver_Instance
 
     # System Initialization
@@ -38,26 +41,40 @@ def main():
     SectorService_Instance = SectorService()
     Driver_Instance = Driver()
     LCP_Instance = LCP()
-    LRS(Driver_Instance)
+    LRS_Instance = LRS(Driver_Instance, clean=args.fresh)
 
-    while 1:
-        # TODO: Find first landmark
-        break
+    if not args.dryrun:
+        Driver_Instance.halt()
+        rospy.loginfo("Searching for the first landmark")
+        while not LRS_Instance.has_landmarks() or LRS_Instance.M_TRANS is None:
+            angular_speed = 0.7
+            for _, m in LRS_Instance.dictionary.items():
+                if m.id != -1 and m.visible_flag and m.accuracy() != 1:
+                    angular_speed = 0.1
+                    break
+
+            direction = -1 if args.direction == "right" else 1
+            Driver_Instance.move(dl=0, da=angular_speed * direction)
+            rospy.rostime.wallsleep(0.2)
+        rospy.loginfo("Search completed")
+        Driver_Instance.halt()
 
     # Subscribe to relevant topics and services
-    rospy.Subscriber(config["pose_with_covariance"], PoseWithCovarianceStamped, route)
+    rospy.Subscriber(config["pose_with_covariance_topic"], PoseWithCovarianceStamped, route)
 
     # Wait for elevation map to be available
     rospy.loginfo("Waiting for topics to become online...")
-    try:
-        rospy.wait_for_service("/elevation_mapping/get_submap", timeout=60)
-        rospy.wait_for_message(
-            config["pose_with_covariance"], PoseWithCovarianceStamped, timeout=10
-        )
-        rospy.loginfo("OK!")
-    except rospy.ROSException as why:
-        rospy.logerr(repr(why))
-        exit(5)
+    rospy.wait_for_service("/elevation_mapping/get_submap", timeout=60)
+    rospy.wait_for_message(
+        config["pose_with_covariance_topic"], PoseWithCovarianceStamped, timeout=10
+    )
+    rospy.loginfo("OK!")
+
+    if args.dryrun:
+        time.sleep(2)
+        rospy.loginfo("All modules initialized without a problem. Exitting...")
+        SectorService_Instance.shutdown()
+        exit(0)
 
     try:
         # ROS Loop
@@ -76,8 +93,9 @@ def main():
                 Driver_Instance.is_target_reached()
                 or Driver_Instance.flag == DriverStatus.HALT
             ):
+                # TODO: Complete redesign (Confirmation, custom stdout etc.)
                 rospy.loginfo(
-                    "Current location: x={:.2f} y={:.2f} theta={:.0f}".format(
+                    "Current location: x={:.2f} y={:.2f}".format(
                         *Driver_Instance.get_current_loc(True)
                     )
                 )
@@ -94,11 +112,7 @@ def main():
                             if prompt == "exit":
                                 raise Exception("User decided to exit.")
 
-                        x, y, r = (
-                            float(input("X=")),
-                            float(input("Y=")),
-                            float(input("R=")),
-                        )
+                        x, y = float(input("X=")), float(input("Y="))
                         Driver_Instance.flag = DriverStatus.RESUME
                         break
                     except ValueError as why:
@@ -142,7 +156,7 @@ def main():
                     rospy.loginfo("Took {:.2f} seconds to ray trace".format(last_time))
                 rospy.loginfo("{:.1f}% successful".format(100 * map_count / (loop)))
             else:
-                rospy.logerr("Error occured!")
+                rospy.logerr("Error occured on local ap retrieval")
                 continue
 
             start = dt()
@@ -152,10 +166,9 @@ def main():
                     extent=SectorService_Instance.get_extent(),
                 )
                 LCP_Instance.set_points(
-                    Driver_Instance.get_current_loc(),
-                    (x + Driver_Instance.cx, y + Driver_Instance.cy),
+                    Driver_Instance.get_current_loc(), Driver_Instance.convert(x, y),
                 )
-                PATH, COST = LCP_Instance.calculate()
+                PATH = LCP_Instance.calculate()
             except Exception as why:
                 rospy.logerr("An error occured on LCP!")
                 rospy.logerr(repr(why))
@@ -170,16 +183,29 @@ def main():
                     "Took {:.2f} seconds to plot the route".format(dt() - start)
                 )
 
-            Driver_Instance.follow_path(PATH, r)
+            Driver_Instance.follow_path(PATH)
 
             rospy.loginfo("")
             rospy.rostime.wallsleep(0.5)
-    except (Exception, KeyboardInterrupt) as why:
+    except (Exception, rospy.ROSException, KeyboardInterrupt):
+        exc_type, exc_value, exc_traceback = sys.exc_info()
         SectorService_Instance.shutdown()
         rospy.logfatal("Program crashed or halted")
-        rospy.logfatal(repr(why))
+        traceback.print_exception(
+            exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout
+        )
         rospy.core.signal_shutdown("exited")
+        exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="ASD Driver")
+    parser.add_argument("--fresh", help="Do not use previous backup files", action="store_true")
+    parser.add_argument("--dryrun", help="Do not start the control loop", action="store_true")
+    parser.add_argument(
+        "--direction",
+        help="Choose starting search direction",
+        choices=["left", "right"],
+        default="left"
+    )
+    main(parser.parse_args())
