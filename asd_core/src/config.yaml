@@ -2,7 +2,7 @@ local_size: 7.0
 resolution: 0.05
 xy_tolerance: 0.6
 cmd_vel: "/cmd_vel"
-pose_with_covariance_topic: "/zed/zed_node/pose_with_covariance"
+pose_with_covariance_topic: "/zed2/pose_with_covariance"
 initial_position:
   x: 0.0
   y: 0.0

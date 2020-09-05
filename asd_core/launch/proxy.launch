@@ -6,13 +6,14 @@
 
         <arg name="cmd_topic" value="/cmd_vel" />
 
-        <arg name="odom_topic" value="/zed/zed_node/odom" />
+        <arg name="odom_topic" value="/zed2/odom" />
         <arg name="odom_frame" value="odom" />
+        
+        <arg name="imu_topic" value="/zed2/imu/data" />
+        <arg name="rgb_image_topic" value="/zed2/left/image_rect_color" />
+        <arg name="rgb_camera_info_topic" value="/zed2/left/camera_info" />
 
-        <arg name="rgb_image_topic" value="/zed/zed_node/rgb/image_rect_color" />
-        <arg name="rgb_camera_info_topic" value="/zed/zed_node/rgb/camera_info" />
-
-        <arg name="depth_image_topic" value="/zed/zed_node/depth/depth_registered" />
-        <arg name="depth_camera_info_topic" default="/zed/zed_node/depth/camera_info" />
+        <arg name="depth_image_topic" value="/zed2/depth/depth_registered" />
+        <arg name="depth_camera_info_topic" default="/zed2/depth/camera_info" />
     </include>
 </launch>

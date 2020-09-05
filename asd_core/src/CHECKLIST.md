@@ -15,3 +15,6 @@
 
 4. ./internal/lrs.py
    - Check both `LIMIT` values
+
+5. ../config/move_base
+   - Check limits

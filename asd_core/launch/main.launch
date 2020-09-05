@@ -7,6 +7,7 @@
     <arg name="odom_topic" default="/odom" />
     <arg name="odom_frame" default="odom" />
 
+    <arg name="imu_topic" default="/imu" />
     <arg name="rgb_image_topic" default="/camera/rgb/image_raw" />
     <arg name="rgb_camera_info_topic" default="/camera/rgb/camera_info" />
 
@@ -44,7 +45,7 @@
             <!-- localization mode -->
             <param name="Mem/IncrementalMemory" type="string" value="true"/>
 
-            <param name="imu_topic" value="/imu" />
+            <param name="imu_topic" value="$(arg imu_topic)" />
             <!-- only used with VIO approaches -->
             <param name="wait_imu_to_init" value="true" />
             <!-- <param name="gps_topic" value="/gps/fix" /> -->
