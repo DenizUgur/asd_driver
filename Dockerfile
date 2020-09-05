@@ -35,11 +35,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python-pip python3 python3-pip python3-setuptools \
     python3-cffi python3-numpy python-catkin-tools \
-    gfortran && \
+    gfortran python3-opencv python3-scipy && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install cython wheel scikit-build && pip3 install \ 
-    scipy sympy opencv-python rpy2==3.3.5 rospkg \
+RUN pip3 install cython wheel && pip3 install \ 
+    sympy rpy2==3.3.5 rospkg \
     catkin_pkg PyYAML && apt-get -qy autoremove && \
     rm -rf /var/lib/apt/lists/*
 
