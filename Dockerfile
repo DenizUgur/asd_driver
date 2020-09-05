@@ -38,8 +38,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gfortran && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install wheel scikit-build && pip3 install scipy \ 
-    sympy opencv-python rpy2==3.3.5 rospkg \
+RUN pip3 install cython wheel scikit-build && pip3 install \ 
+    scipy sympy opencv-python rpy2==3.3.5 rospkg \
     catkin_pkg PyYAML && apt-get -qy autoremove && \
     rm -rf /var/lib/apt/lists/*
 
