@@ -3,6 +3,8 @@ name: Docker
 on:
   push:
     branches: [master]
+  schedule:
+    - cron: '0 9-23/3 * * *'
 
 jobs:
   buildx:
@@ -23,31 +25,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Docker Buildx (build)
+      - name: Docker Login
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login --username "${{ secrets.DOCKER_USERNAME }}" --password-stdin docker.io
+      
+      - name: Docker Buildx (cached)
+        if: ${{ github.event_name != 'schedule' }}
         run: |
           docker buildx build \
             --cache-from "type=local,src=/tmp/.buildx-cache" \
             --cache-to "type=local,dest=/tmp/.buildx-cache" \
             --platform linux/arm64,linux/amd64 \
-            --output "type=image,push=false" \
+            --output "type=image,push=true" \
             --tag denizugur/asd_driver:latest \
             --build-arg FREEDOM_URL="${{ secrets.FREEDOM_URL }}" \
             --file ./Dockerfile ./
 
-      - name: Docker Login
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login --username "${{ secrets.DOCKER_USERNAME }}" --password-stdin docker.io
-
-      - name: Docker Buildx (push)
+      - name: Docker Buildx (no cache)
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           docker buildx build \
-          --cache-from "type=local,src=/tmp/.buildx-cache" \
-          --cache-to "type=local,dest=/tmp/.buildx-cache" \
-          --platform linux/arm64,linux/amd64 \
-          --output "type=image,push=true" \
-          --tag denizugur/asd_driver:latest \
-          --build-arg FREEDOM_URL="${{ secrets.FREEDOM_URL }}" \
-          --file ./Dockerfile ./
+            --cache-to "type=local,dest=/tmp/.buildx-cache" \
+            --platform linux/arm64,linux/amd64 \
+            --output "type=image,push=true" \
+            --tag denizugur/asd_driver:latest \
+            --build-arg FREEDOM_URL="${{ secrets.FREEDOM_URL }}" \
+            --file ./Dockerfile ./
 
       - name: Inspect image
         run: |

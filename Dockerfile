@@ -8,7 +8,7 @@ ENV ROS_MASTER_URI http://127.0.0.1:11311
 # Initialization
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends aptitude openssh-server curl ssh \ 
-    apt-transport-https software-properties-common && \
+    apt-transport-https software-properties-common screen vim && \
     rm -rf /var/lib/apt/lists/*
 
 # Set root password
@@ -28,7 +28,8 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
 # Add ROS related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base \
-    ros-melodic-dwa-local-planner ros-melodic-ar-track-alvar libpcl-dev && \
+    ros-melodic-robot-localization ros-melodic-dwa-local-planner \
+    ros-melodic-ar-track-alvar libpcl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python related packages
@@ -39,9 +40,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install cython wheel && pip3 install \ 
-    sympy rpy2==3.3.5 rospkg \
-    catkin_pkg PyYAML && apt-get -qy autoremove && \
-    rm -rf /var/lib/apt/lists/*
+    sympy rpy2==3.3.5 prompt_toolkit rospkg \
+    catkin_pkg PyYAML && \
+    rm -rf /root/.cache/pip/*
 
 # Downlaod necessary repositories
 RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src \ 
@@ -50,6 +51,11 @@ RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src \
     && git clone https://github.com/anybotics/elevation_mapping.git \
     && git clone https://github.com/ros/catkin.git \
     && mkdir asd_driver
+
+# Hotfix for the faulty crc32c package
+RUN pip install --user crc32c==2.0.1 \
+    && pip3 install --user crc32c==2.0.1 \
+    && rm -rf /root/.cache/pip/*
 
 # Install Freedom agent
 ARG FREEDOM_URL
@@ -60,11 +66,6 @@ RUN curl -sSf $FREEDOM_URL | \
 
 RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosdep init && rosdep update && \
     rosdep install --from-paths /catkin_ws/src/ --ignore-src --rosdistro melodic -r -y && \
-    rm -rf /var/lib/apt/lists/*
-
-# Any additional library or packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-robot-localization screen vim && pip3 install prompt_toolkit && \
     rm -rf /var/lib/apt/lists/*
 
 # Build big packages
