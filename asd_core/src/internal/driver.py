@@ -8,8 +8,8 @@ from enum import Enum
 
 from actionlib_msgs.msg import GoalStatus, GoalStatusArray
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Vector3, Twist
+from nav_msgs.msg import Path, Odometry
+from geometry_msgs.msg import PoseStamped, Vector3, Twist
 from std_msgs.msg import Header
 
 
@@ -33,12 +33,17 @@ class DriverStatus(Enum):
 
 class Driver:
     def __init__(self):
-        self.config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
+        self.config = yaml.load(open("./config/config.yaml"), Loader=yaml.FullLoader)
         self.path_pub = rospy.Publisher("/asd_core/path", Path, queue_size=10)
         self.cmd_vel_pub = rospy.Publisher(self.config["cmd_vel"], Twist, queue_size=10)
         self.status_sub = rospy.Subscriber(
             "/move_base/status", GoalStatusArray, self.update_status
         )
+
+        self.client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+        rospy.loginfo("Waiting for actionlib server to become online.")
+        self.client.wait_for_server()
+        self.client.cancel_all_goals()
 
         self.worker = Thread(name="driver_worker", target=self.daemon_worker)
         self.worker.setDaemon(True)
@@ -46,7 +51,7 @@ class Driver:
 
         self.target, self.source, self.latch, self.status = None, None, True, 0
         self.flag = DriverStatus.RESUME
-        self.M_T = None
+        self.M_T, self.M_T_err = None, math.inf
         assert self.config["xy_tolerance"] / 2 >= 0.25  # defined in move_base params
 
     def daemon_worker(self):
@@ -59,25 +64,18 @@ class Driver:
             )
             path = []
 
-            client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-            rospy.loginfo("Waiting for actionlib server to become online.")
-            client.wait_for_server()
-            client.cancel_all_goals()
-
             rospy.Subscriber(
                 "/asd_core/path",
                 Path,
                 lambda payload: path.__init__([extract(x) for x in payload.poses]),
             )
             rospy.Subscriber(
-                self.config["pose_with_covariance_topic"],
-                PoseWithCovarianceStamped,
-                lambda payload: pose.update({"pose": payload}),
+                self.config["odometry_topic"],
+                Odometry,
+                lambda payload: pose.update({"pose": payload.pose}),
             )
 
-            rospy.wait_for_message(
-                self.config["pose_with_covariance_topic"], PoseWithCovarianceStamped
-            )
+            rospy.wait_for_message(self.config["odometry_topic"], Odometry)
             rospy.wait_for_message("/asd_core/path", Path)
 
             rospy.loginfo("Driver Daemon online")
@@ -89,10 +87,9 @@ class Driver:
                     if self.flag == DriverStatus.HALT:
                         will_rotate_to_first = True
                         last_dist = 999
-                        client.cancel_all_goals()
 
                     if len(path) > 0 and self.flag == DriverStatus.RESUME:
-                        x, y, _ = extract(pose.get("pose").pose)
+                        x, y, _ = extract(pose.get("pose"))
                         tx, ty, _ = path[-1]
                         ta = math.atan2(ty - y, tx - x)
                         path_copy = path.copy()
@@ -133,15 +130,15 @@ class Driver:
                             if will_rotate_to_first:
                                 goal.target_pose.pose.position.x = x
                                 goal.target_pose.pose.position.y = y
-                                client.send_goal(goal)
+                                self.client.send_goal(goal)
 
-                                client.wait_for_result()
+                                self.client.wait_for_result()
                                 will_rotate_to_first = False
                                 path = []
                             else:
-                                client.send_goal(goal)
+                                self.client.send_goal(goal)
                         else:
-                            client.cancel_all_goals()
+                            self.client.cancel_all_goals()
                             will_rotate_to_first = True
                             last_dist = 999
 
@@ -149,9 +146,27 @@ class Driver:
                     rospy.logerr("Error in Driver... Recovering.")
                     rospy.logerr(repr(why))
 
-                rospy.rostime.wallsleep(0.2)
+                rospy.rostime.wallsleep(0.05)
         except Exception:
             rospy.logfatal("Driver Daemon crashed or halted!")
+
+    def go_to_position(self, x, y, wait=True):
+        goal = MoveBaseGoal()
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.header.frame_id = "map"
+
+        # set position
+        goal.target_pose.pose.position.x = x
+        goal.target_pose.pose.position.y = y
+        goal.target_pose.pose.position.z = 0.0
+
+        # set orientation
+        goal.target_pose.pose.orientation = self.pose.orientation
+
+        self.client.send_goal(goal)
+
+        if wait:
+            self.client.wait_for_result()
 
     def update_pose(self, payload):
         self.pose = payload.pose
@@ -182,6 +197,7 @@ class Driver:
     def halt(self):
         self.latch = True
         self.flag = DriverStatus.HALT
+        self.client.cancel_all_goals()
         self.move()
 
     def convert(self, cx, cy):

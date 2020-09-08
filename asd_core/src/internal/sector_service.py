@@ -212,7 +212,7 @@ class RayTracer:
 
 class SectorService:
     def __init__(self):
-        self.config = yaml.load(open("./config.yaml"), Loader=yaml.FullLoader)
+        self.config = yaml.load(open("./config/config.yaml"), Loader=yaml.FullLoader)
         self.terrain = None
         self.pose = None
         assert self.config["local_size"] / self.config["resolution"] % 2 == 0
