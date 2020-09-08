@@ -9,10 +9,6 @@ catkin_package()
 ## Install ##
 #############
 
-install(PROGRAMS scripts/tf_to_pose_publisher.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(PROGRAMS src/base.py
+install(PROGRAMS scripts/pose_relay.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

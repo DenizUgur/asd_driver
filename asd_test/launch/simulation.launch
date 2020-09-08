@@ -1,64 +1,18 @@
 <launch>
 
     <!-- Arguments -->
-    <arg name="rtabmapviz" default="false" />
     <arg name="rviz" default="true" />
-    <arg name="show_gazebo" default="false" />
-
-    <!-- Robot Related Argumates -->
-    <arg name="robot_name" default="leo_rover" />
-
+    
     <!-- Config Files -->
     <arg name="rviz_cfg" default="$(find asd_test)/rviz/default.rviz" />
 
-    <!-- Turtlebot3 -->
-    <arg name="x_pos" default="10.14"/>
-    <arg name="y_pos" default="-11.4"/>
-    <arg name="z_pos" default="0.6"/>
-    <arg name="roll" default="0"/>
-    <arg name="pitch" default="0"/>
-    <arg name="yaw" default="1.31"/>
-
-    <include file="$(find gazebo_ros)/launch/empty_world.launch">
-        <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/> -->
-        <arg name="world_name" value="$(find marsyard)/worlds/marsyard.world"/>
-        <arg name="paused" value="false"/>
-        <arg name="use_sim_time" value="true"/>
-        <arg name="gui" value="$(arg show_gazebo)"/>
-        <arg name="headless" value="$(eval show_gazebo == 'false')"/>
-        <arg name="debug" value="false"/>
-        <arg name="verbose" value="false"/>
+    <!-- Start Simulation-->
+    <include file="$(find leo_gazebo)/launch/leo_marsyard.launch">
+        <arg name="gui" default="false"/>
     </include>
-
-    <!-- Spawn Robot -->
-    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find asd_robot)/urdf/$(arg robot_name).urdf.xacro" />
-
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" 
-    args="-urdf 
-        -model $(arg robot_name) 
-        -x $(arg x_pos) 
-        -y $(arg y_pos) 
-        -z $(arg z_pos) 
-        -R $(arg roll) 
-        -P $(arg pitch) 
-        -Y $(arg yaw) 
-        -param robot_description" />
 
     <!-- Spawn Markers -->
     <include file="$(find asd_test)/launch/markers.launch" />
-
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
-        <param name="publish_frequency" type="double" value="200.0" />
-    </node>
-
-    <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">
-        <param name="rate" type="double" value="200.0" />
-    </node>
-
-    <!-- Automation Software -->
-    <include file="$(find asd_core)/launch/main.launch">
-        <arg name="rtabmapviz" value="$(arg rtabmapviz)" />
-    </include>
 
     <!-- rviz -->
     <group if="$(arg rviz)">

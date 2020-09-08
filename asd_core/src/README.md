@@ -28,11 +28,6 @@ You need to launch our main launch file. To test this launch file, ZED needs to 
   roscd asd_core/src
   ```
 
-- You need to modify `config.yaml` with proper settings. Only change the following properties
-
-  - pose_with_covariance_topic
-  - _(Optional) cmd_vel_
-
 - Start the unit test. There is only one test. It should only take 5-10 seconds. If it lasts more, then the system is not fast enough. Please report this.
 
   ```bash
