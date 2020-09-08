@@ -5,7 +5,7 @@ from sdpath.lcp import LCP
 
 
 class TestLCP(unittest.TestCase):
-    # * Tests, R connection
+    # * Tests the R connection
     def test_calculation(self):
         self.lcp = LCP()
         self.lcp.process_dem(np.zeros((50, 50)))
