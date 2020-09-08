@@ -27,7 +27,8 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
 
 # Add ROS related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base ros-melodic-dwa-local-planner \
+    ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base \
+    ros-melodic-dwa-local-planner ros-melodic-robot-localization \
     ros-melodic-ar-track-alvar libpcl-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -39,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install cython wheel && pip3 install \ 
-    sympy rpy2==3.3.5 rospkg \
+    sympy rpy2==3.3.5 prompt_toolkit rospkg \
     catkin_pkg PyYAML && apt-get -qy autoremove && \
     rm -rf /var/lib/apt/lists/*
 
