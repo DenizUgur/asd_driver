@@ -90,4 +90,6 @@
         <rosparam command="load" file="$(find asd_core)/config/elevation_mapping/default.yaml" />
         <rosparam command="load" file="$(find elevation_mapping)/config/sensor_processors/perfect.yaml" />
     </node>
+
+    <node name="image_saver" pkg="asd_core" type="image_saver.py" />
 </launch>

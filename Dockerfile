@@ -29,7 +29,7 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base \
     ros-melodic-robot-localization ros-melodic-dwa-local-planner \
-    ros-melodic-ar-track-alvar libpcl-dev && \
+    ros-melodic-ar-track-alvar ros-melodic-cv-bridge libpcl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python related packages
@@ -51,11 +51,6 @@ RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src \
     && git clone https://github.com/anybotics/elevation_mapping.git \
     && git clone https://github.com/ros/catkin.git \
     && mkdir asd_driver
-
-# Hotfix for the faulty crc32c package
-RUN pip install --user crc32c==2.0.1 \
-    && pip3 install --user crc32c==2.0.1 \
-    && rm -rf /root/.cache/pip/*
 
 # Install Freedom agent
 ARG FREEDOM_URL
