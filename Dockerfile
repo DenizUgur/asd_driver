@@ -28,8 +28,7 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD5
 # Add ROS related packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-grid-map ros-melodic-rtabmap-ros ros-melodic-move-base \
-    ros-melodic-dwa-local-planner ros-melodic-robot-localization \
-    ros-melodic-ar-track-alvar libpcl-dev && \
+    ros-melodic-dwa-local-planner ros-melodic-ar-track-alvar libpcl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python related packages
@@ -40,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install cython wheel && pip3 install \ 
-    sympy rpy2==3.3.5 prompt_toolkit rospkg \
+    sympy rpy2==3.3.5 rospkg \
     catkin_pkg PyYAML && apt-get -qy autoremove && \
     rm -rf /var/lib/apt/lists/*
 
@@ -64,7 +63,9 @@ RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosde
     rm -rf /var/lib/apt/lists/*
 
 # Any additional library or packages
-RUN apt-get update && apt-get install -y --no-install-recommends vim && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ros-melodic-robot-localization screen vim && pip3 install prompt_toolkit && \
+    rm -rf /var/lib/apt/lists/*
 
 # Build big packages
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
