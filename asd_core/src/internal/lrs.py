@@ -185,9 +185,11 @@ class LRS:
                                 reverse=True,
                             )
 
-                            # Remove the ones where there is no observed position
+                            # Remove the ones where there is no observed position or not accurate
                             landmarks = [
-                                l for l in landmarks if len(l.observed_positions) > 0
+                                l
+                                for l in landmarks
+                                if len(l.observed_positions) > 0 and l.accuracy() >= 0.8
                             ]
                             if len(landmarks) < 2:
                                 continue
