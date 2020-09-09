@@ -1,4 +1,5 @@
 import yaml
+import time
 from prompt_toolkit import prompt, HTML, PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import button_dialog, message_dialog
@@ -23,15 +24,23 @@ class PromptHandler:
 
     def get_prompt_base(self):
         ozu_rover = ["<red>O</red>", "z", "<lightblue>U</lightblue>", " Rover"]
-        error_num = self.driver_instance.M_T_err / 8
-        if error_num <= 0.5:
+        error_num = self.driver_instance.M_T_stats[0] / 8
+        dt = int(time.time() - self.driver_instance.M_T_stats[1])
+        if dt < 60:
+            dt = "<green>{}</green>".format(dt)
+        elif dt < 120:
+            dt = "<orange>{}</orange>".format(dt)
+        else:
+            dt = "<red>{}</red>".format(dt)
+
+        if error_num < 0.5:
             error = "<green>\u00B1{:.3f}</green>".format(error_num)
         elif error_num < 1.5:
             error = "<orange>\u00B1{:.3f}</orange>".format(error_num)
         else:
             error = "<red>\u00B1{:.3f}</red>".format(error_num)
-        current_loc = "Marsyard position is x=<b>{:.2f}</b> y=<b>{:.2f}</b> <b>{}</b> meters".format(
-            *self.driver_instance.get_current_loc(True), error
+        current_loc = "Marsyard position is x=<b>{:.2f}</b> y=<b>{:.2f}</b> <b>{}</b> meters (<b>{}</b>s old)".format(
+            *self.driver_instance.get_current_loc(True), error, dt
         )
         return HTML(
             "\n<b>{} - <i>ASD Driver</i></b>\n{}\n<b>$> </b>".format(

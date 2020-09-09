@@ -69,8 +69,12 @@ def main(args):
         rospy.loginfo("Searching for the first landmark")
 
         # Kick start rover
-        rospy.loginfo("Kick-starting the rover by 3 meters on +x axis (relative)")
-        Driver_Instance.go_to_position(3, 0)
+        rospy.loginfo("Kick-starting the rover by 3 to 4.5 meters on +x axis (relative)")
+        dx = 3
+        while Driver_Instance.go_to_position(dx, 0) != DriverStatus.ACCEPTED:
+            if dx > 4.5:
+                break
+            dx += 0.1
 
         rospy.loginfo("Waiting for maximum of 5 seconds to initialize Transformation Matrix")
         start = dt()

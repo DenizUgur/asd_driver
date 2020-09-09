@@ -1,6 +1,7 @@
 import rospy
 import pickle
 import os
+import time
 import math
 import yaml
 import sympy as sp
@@ -317,20 +318,26 @@ class LRS:
     def update_MT(self, MT=None, error=None):
         if not MT is None:
             if self.M_TRANS is None:
-                self.M_TRANS = [(error, MT)]
+                self.M_TRANS = [(error, time.time(), MT)]
             elif len(self.M_TRANS) < self.LIMIT:
-                self.M_TRANS.append((error, MT))
+                self.M_TRANS.append((error, time.time(), MT))
             else:
-                self.M_TRANS.sort(key=lambda x: x[0], reverse=True)
+                self.M_TRANS.sort(key=lambda x: -x[0])
                 if error < self.M_TRANS[0][0]:
                     self.M_TRANS.pop(0)
-                    self.M_TRANS.append((error, MT))
+                    self.M_TRANS.append((error, time.time(), MT))
 
-        # errors = [e for e, _ in self.M_TRANS]
-        # best = list(filter(lambda v: v[0] <= np.percentile(errors, 25), self.M_TRANS))
-        best = sorted(self.M_TRANS, key=lambda x: x[0])
-        self.driver_instance.M_T = best[0][1]
-        self.driver_instance.M_T_err = best[0][0]
+        self.M_TRANS.sort(key=lambda x: x[0])
+        groups = [[self.M_TRANS[0]]]
+        for x in self.M_TRANS[1:]:
+            if abs(x[0] - groups[-1][-1][0]) <= 0.1:
+                groups[-1].append(x)
+            else:
+                groups.append([x])
+
+        best = sorted(groups[0], key=lambda x: -x[1])
+        self.driver_instance.M_T = best[0][2]
+        self.driver_instance.M_T_stats = (best[0][0], best[0][1])
 
     def theta_df(self, unit1, unit2):
         unit1 = math.degrees(unit1)

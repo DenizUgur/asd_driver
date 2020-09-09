@@ -29,6 +29,8 @@ class Status(Enum):
 class DriverStatus(Enum):
     HALT = 0
     RESUME = 1
+    REJECTED = 2
+    ACCEPTED = 3
 
 
 class Driver:
@@ -51,7 +53,7 @@ class Driver:
 
         self.target, self.source, self.latch, self.status = None, None, True, 0
         self.flag = DriverStatus.RESUME
-        self.M_T, self.M_T_err = None, math.inf
+        self.M_T, self.M_T_stats = None, (math.inf, math.inf)
         assert self.config["xy_tolerance"] / 2 >= 0.25  # defined in move_base params
 
     def daemon_worker(self):
@@ -165,8 +167,12 @@ class Driver:
 
         self.client.send_goal(goal)
 
+        if self.client.get_state() == GoalStatus.REJECTED:
+            return DriverStatus.REJECTED
+
         if wait:
             self.client.wait_for_result()
+            return DriverStatus.ACCEPTED
 
     def update_pose(self, payload):
         self.pose = payload.pose
