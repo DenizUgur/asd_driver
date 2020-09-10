@@ -71,7 +71,7 @@ RUN mkdir -p /mars && mkdir -p /catkin_my_ws/src/marsyard_images
 
 RUN cd /catkin_ws/src && git clone https://github.com/ros-perception/vision_opencv.git && \
     cd vision_opencv/ && git checkout 1.13.0 && \
-    git clone https://github.com/canyagmur/erc_2020.git && \
+    cd /catkin_ws/src && git clone https://github.com/canyagmur/erc_2020.git && \
     chmod +x /catkin_ws/src/erc_2020/rover_really_marsyard.py
 
 # Build big packages
