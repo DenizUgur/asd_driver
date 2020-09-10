@@ -69,12 +69,10 @@ RUN apt-get update && apt-get install -y python3-dev python3-catkin-pkg-modules 
 
 RUN mkdir -p /mars && mkdir -p /catkin_my_ws/src/marsyard_images
 
-RUN /bin/bash -c 'cd /catkin_my_ws; catkin init; catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so; catkin config --install'  
-RUN cd /catkin_my_ws && git clone https://github.com/ros-perception/vision_opencv.git src/vision_opencv && cd src/vision_opencv/ && git checkout 1.13.0 
-RUN cd /catkin_my_ws/src && git clone https://github.com/canyagmur/erc_2020.git && \
-    chmod +x /catkin_my_ws/src/erc_2020/rover_really_marsyard.py
-RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_my_ws; catkin clean; catkin build cv_bridge' 
-RUN /bin/bash -c "source /catkin_my_ws/install/setup.bash --extend"
+RUN cd /catkin_ws/src && git clone https://github.com/ros-perception/vision_opencv.git && \
+    cd vision_opencv/ && git checkout 1.13.0 && \
+    git clone https://github.com/canyagmur/erc_2020.git && \
+    chmod +x /catkin_ws/src/erc_2020/rover_really_marsyard.py
 
 # Build big packages
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
@@ -85,8 +83,7 @@ ADD . /catkin_ws/src/asd_driver
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc && \
-    echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc && \
-    echo "source /catkin_my_ws/install/setup.bash" >> ~/.bashrc
+    echo "source /catkin_ws/devel/setup.bash" >> ~/.bashrc
 
 COPY start.sh /
 
