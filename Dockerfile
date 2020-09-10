@@ -67,10 +67,8 @@ RUN apt-get update && rm /etc/ros/rosdep/sources.list.d/20-default.list && rosde
 RUN apt-get update && apt-get install -y python3-dev python3-catkin-pkg-modules && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /mars && mkdir -p /catkin_my_ws/src/marsyard_images
-
-RUN cd /catkin_ws/src && git clone https://github.com/ros-perception/vision_opencv.git && \
-    cd vision_opencv/ && git checkout 1.13.0 && \
+RUN apt-get update && apt-get install -y --no-install-recommends python-opencv && \
+    rm -rf /var/lib/apt/lists/* && mkdir -p /mars && \
     cd /catkin_ws/src && git clone https://github.com/canyagmur/erc_2020.git && \
     chmod +x /catkin_ws/src/erc_2020/rover_really_marsyard.py
 
