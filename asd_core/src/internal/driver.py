@@ -2,35 +2,22 @@ import rospy
 import math
 import yaml
 import numpy as np
-import actionlib
 from threading import Thread
 from enum import Enum
 
-from actionlib_msgs.msg import GoalStatus, GoalStatusArray
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from nav_msgs.msg import Path, Odometry
 from geometry_msgs.msg import PoseStamped, Vector3, Twist
 from std_msgs.msg import Header
 
 
-class Status(Enum):
-    PENDING = 0
-    ACTIVE = 1
-    PREEMPTED = 2
-    SUCCEEDED = 3
-    ABORTED = 4
-    REJECTED = 5
-    PREEMPTING = 6
-    RECALLING = 7
-    RECALLED = 8
-    LOST = 9
-
-
 class DriverStatus(Enum):
     HALT = 0
-    RESUME = 1
+    NORMAL = 1
     REJECTED = 2
     ACCEPTED = 3
+    PREEMPTING = 4
+    CANCELLED = 5
 
 
 class Driver:
@@ -38,23 +25,72 @@ class Driver:
         self.config = yaml.load(open("./config/config.yaml"), Loader=yaml.FullLoader)
         self.path_pub = rospy.Publisher("/asd_core/path", Path, queue_size=10)
         self.cmd_vel_pub = rospy.Publisher(self.config["cmd_vel"], Twist, queue_size=10)
-        self.status_sub = rospy.Subscriber(
-            "/move_base/status", GoalStatusArray, self.update_status
-        )
 
-        self.client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-        rospy.loginfo("Waiting for actionlib server to become online.")
-        self.client.wait_for_server()
-        self.client.cancel_all_goals()
+        self.twister = Thread(name="twister_worker", target=self.twister_daemon_worker)
+        self.twister.setDaemon(True)
+        self.twister.start()
 
         self.worker = Thread(name="driver_worker", target=self.daemon_worker)
         self.worker.setDaemon(True)
         self.worker.start()
 
-        self.target, self.source, self.latch, self.status = None, None, True, 0
-        self.flag = DriverStatus.RESUME
+        self.target_goal = (None, None, None)
+        self.target, self.source, self.latch = None, None, True
+        self.flag = DriverStatus.NORMAL
         self.M_T, self.M_T_stats = None, (math.inf, math.inf)
         assert self.config["xy_tolerance"] / 2 >= 0.25  # defined in move_base params
+
+    def twister_daemon_worker(self):
+        try:
+            pose = {"pose": None}
+            extract = lambda val: (
+                val.pose.position.x,
+                val.pose.position.y,
+                val.pose.orientation,
+            )
+            rospy.Subscriber(
+                self.config["odometry_topic"],
+                Odometry,
+                lambda payload: pose.update({"pose": payload.pose}),
+            )
+            rospy.wait_for_message(self.config["odometry_topic"], Odometry)
+
+            rospy.loginfo("Twister is online!")
+
+            K_LIN = 2.0
+            K_ANG = 1.0
+
+            while not rospy.core.is_shutdown():
+                try:
+                    if self.flag == DriverStatus.PREEMPTING:
+                        rx, ry, r = extract(pose.get("pose"))
+                        rr = math.acos(r.w) * 2
+
+                        tx, ty, ttr = self.target_goal
+                        tr = math.atan2(ty - ry, tx - rx)
+                        dist = abs(math.sqrt((tx - rx) ** 2 + (ty - ry) ** 2))
+
+                        ANG_vel = (tr - rr) * K_ANG
+                        LIN_vel = dist * K_LIN
+
+                        print(abs(tr - rr), tr, rr)
+
+                        if dist < self.config["xy_tolerance"] and abs(ttr - rr) < 0.5:
+                            self.flag = DriverStatus.NORMAL
+                            self.move(dl=0, da=0)
+                        else:
+                            if abs(tr - rr) <= 1.5:
+                                self.move(dl=LIN_vel)
+                            else:
+                                self.move(da=ANG_vel)
+
+                except Exception as why:
+                    rospy.logerr("Error in Twister... Recovering.")
+                    rospy.logerr(repr(why))
+
+                rospy.rostime.wallsleep(0.01)
+        except Exception:
+            rospy.logfatal("Twister Daemon crashed or halted!")
 
     def daemon_worker(self):
         try:
@@ -90,7 +126,7 @@ class Driver:
                         will_rotate_to_first = True
                         last_dist = 999
 
-                    if len(path) > 0 and self.flag == DriverStatus.RESUME:
+                    if len(path) > 0 and self.flag == DriverStatus.NORMAL:
                         x, y, _ = extract(pose.get("pose"))
                         tx, ty, _ = path[-1]
                         ta = math.atan2(ty - y, tx - x)
@@ -109,6 +145,10 @@ class Driver:
                                 else:
                                     break
 
+                            if will_rotate_to_first:
+                                waiting = False
+                                break
+
                             if (
                                 ta - math.pi / 2 < a < ta + math.pi / 2
                                 and dist >= self.config["xy_tolerance"]
@@ -117,30 +157,18 @@ class Driver:
                                 break
 
                         if not waiting:
-                            goal = MoveBaseGoal()
-                            goal.target_pose.header.stamp = rospy.Time.now()
-                            goal.target_pose.header.frame_id = "map"
-
-                            # set position
-                            goal.target_pose.pose.position.x = nx
-                            goal.target_pose.pose.position.y = ny
-                            goal.target_pose.pose.position.z = 0.0
-
-                            # set orientation
-                            goal.target_pose.pose.orientation = rot
-
+                            self.flag = DriverStatus.PREEMPTING
                             if will_rotate_to_first:
-                                goal.target_pose.pose.position.x = x
-                                goal.target_pose.pose.position.y = y
-                                self.client.send_goal(goal)
+                                self.target_goal = (x, y, math.acos(rot.w) * 2)
 
-                                self.client.wait_for_result()
+                                while self.flag == DriverStatus.PREEMPTING:
+                                    pass
+
                                 will_rotate_to_first = False
-                                path = []
                             else:
-                                self.client.send_goal(goal)
+                                self.target_goal = (nx, ny, math.acos(rot.w) * 2)
                         else:
-                            self.client.cancel_all_goals()
+                            self.flag = DriverStatus.CANCELLED
                             will_rotate_to_first = True
                             last_dist = 999
 
@@ -148,40 +176,19 @@ class Driver:
                     rospy.logerr("Error in Driver... Recovering.")
                     rospy.logerr(repr(why))
 
-                rospy.rostime.wallsleep(0.05)
+                rospy.rostime.wallsleep(0.1)
         except Exception:
             rospy.logfatal("Driver Daemon crashed or halted!")
 
     def go_to_position(self, x, y, wait=True):
-        goal = MoveBaseGoal()
-        goal.target_pose.header.stamp = rospy.Time.now()
-        goal.target_pose.header.frame_id = "map"
-
-        # set position
-        goal.target_pose.pose.position.x = x
-        goal.target_pose.pose.position.y = y
-        goal.target_pose.pose.position.z = 0.0
-
-        # set orientation
-        goal.target_pose.pose.orientation = self.pose.orientation
-
-        self.client.send_goal(goal)
-
-        if self.client.get_state() == GoalStatus.REJECTED:
-            return DriverStatus.REJECTED
-
+        self.target_goal = (x, y, 0)
+        self.flag = DriverStatus.PREEMPTING
         if wait:
-            self.client.wait_for_result()
-            return DriverStatus.ACCEPTED
+            while self.flag == DriverStatus.PREEMPTING:
+                pass
 
     def update_pose(self, payload):
         self.pose = payload.pose
-
-    def update_status(self, payload):
-        if len(payload.status_list) > 0:
-            self.status = payload.status_list.pop().status
-        else:
-            self.status = Status.PENDING
 
     def move(self, dl=0, da=0):
         msg = Twist()
@@ -203,7 +210,6 @@ class Driver:
     def halt(self):
         self.latch = True
         self.flag = DriverStatus.HALT
-        self.client.cancel_all_goals()
         self.move()
 
     def convert(self, cx, cy):
@@ -225,9 +231,8 @@ class Driver:
         else:
             x, y = self.get_current_loc()
             tx, ty = self.target
-            reached = (
-                self.config["xy_tolerance"] >= math.sqrt((x - tx) ** 2 + (y - ty) ** 2)
-                and self.status != Status.ACTIVE
+            reached = self.config["xy_tolerance"] >= math.sqrt(
+                (x - tx) ** 2 + (y - ty) ** 2
             )
 
         if self.flag == DriverStatus.HALT:
@@ -287,4 +292,3 @@ class Driver:
             msg.poses.append(pose)
 
         self.path_pub.publish(msg)
-
