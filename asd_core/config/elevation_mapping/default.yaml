@@ -4,7 +4,7 @@ robot_base_frame_id:                        base_link
 sensor_frame_id:                            zed2_camera_center
 robot_pose_with_covariance_topic:           /odometry/pose
 robot_pose_cache_size:                      200
-point_cloud_topic:                          /zed2/point_cloud/cloud_registered
+point_cloud_topic:                          /rtabmap/cloud_map
 track_point_frame_id:                       base_link
 track_point_x:                              0.0
 track_point_y:                              0.0

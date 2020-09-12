@@ -76,7 +76,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends python-opencv &
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 
 WORKDIR /catkin_ws
-ADD . /catkin_ws/src/asd_driver
+COPY . /catkin_ws/src/asd_driver
 
 RUN /bin/bash -c '. /opt/ros/melodic/setup.bash; cd /catkin_ws; catkin build -DCMAKE_BUILD_TYPE=Release'
 

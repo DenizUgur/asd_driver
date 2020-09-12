@@ -13,7 +13,7 @@ rpy2.robjects.numpy2ri.activate()
 
 
 class LCP:
-    TIMEOUT = 120
+    TIMEOUT = 60
 
     def __init__(self, dem=None):
         rpy2.robjects.r['options'](warn=-1)
