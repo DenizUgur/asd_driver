@@ -41,7 +41,7 @@ class Driver:
         assert self.config["xy_tolerance"] / 2 >= 0.25  # defined in move_base params
 
     def twister_daemon_worker(self):
-         try:
+        try:
             pose = {"pose": None}
             extract = lambda val: (
                 val.pose.position.x,
@@ -58,7 +58,7 @@ class Driver:
             rospy.loginfo("Twister is online!")
 
             K_LIN = 0.5
-            K_ANG = 4.0
+            K_ANG = 1.0
 
             while not rospy.core.is_shutdown():
                 try:
@@ -66,17 +66,22 @@ class Driver:
                         rx, ry, r = extract(pose.get("pose"))
                         rr = math.acos(r.w) * 2
 
-                        tx, ty = self.target_goal
+                        tx, ty, ttr = self.target_goal
                         tr = math.atan2(ty - ry, tx - rx)
                         dist = abs(math.sqrt((tx - rx)**2 + (ty - ry)**2))
 
+                        if dist < 0.3:
+                            ANG_vel = (ttr - rr) * K_ANG
+                        else:
+                            ANG_vel = (tr - rr) * K_ANG
+
                         LIN_vel = dist * K_LIN
-                        ANG_vel = (tr - rr) * K_ANG
 
-                        self.move(dl=LIN_vel, da=ANG_vel)
-
-                        if dist < 0.30:
+                        if dist < 0.30 and abs(ttr - rr) < 0.5:
                             self.flag = DriverStatus.NORMAL
+                            self.move(dl=0, da=0)
+                        else:
+                            self.move(dl=LIN_vel, da=ANG_vel)
 
                 except Exception as why:
                     rospy.logerr("Error in Twister... Recovering.")
@@ -139,6 +144,10 @@ class Driver:
                                 else:
                                     break
 
+                            if will_rotate_to_first:
+                                waiting = False
+                                break
+
                             if (
                                 ta - math.pi / 2 < a < ta + math.pi / 2
                                 and dist >= self.config["xy_tolerance"]
@@ -147,17 +156,16 @@ class Driver:
                                 break
 
                         if not waiting:
+                            self.flag == DriverStatus.PREEMPTING
                             if will_rotate_to_first:
-                                self.target_goal = (x, y)
-                                self.flag == DriverStatus.PREEMPTING
+                                self.target_goal = (x, y, math.acos(rot.w) * 2)
 
                                 while self.flag == DriverStatus.PREEMPTING:
                                     pass
 
                                 will_rotate_to_first = False
-                                path = []
                             else:
-                                self.target_goal = (nx, ny)
+                                self.target_goal = (nx, ny, math.acos(rot.w) * 2)
                         else:
                             self.flag = DriverStatus.CANCELLED
                             will_rotate_to_first = True
@@ -172,7 +180,7 @@ class Driver:
             rospy.logfatal("Driver Daemon crashed or halted!")
 
     def go_to_position(self, x, y, wait=True):
-        self.target_goal = (x, y)
+        self.target_goal = (x, y, 0)
         self.flag = DriverStatus.PREEMPTING
         if wait:
             while self.flag == DriverStatus.PREEMPTING:

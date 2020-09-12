@@ -98,8 +98,14 @@ class PromptHandler:
                             ).run()
                             continue
                     elif segments[1] == "waypoint" or segments[1] == "scientific":
-                        point = self.points[segments[1]][segments[2]]
-                        x, y = point["x"], point["y"]
+                        try:
+                            point = self.points[segments[1]][segments[2]]
+                            x, y = point["x"], point["y"]
+                        except Exception:
+                            message_dialog(
+                                title="Error", text="Entered option is invalid",
+                            ).run()
+                            continue
                     else:
                         message_dialog(
                             title="Error", text="Entered option is invalid",

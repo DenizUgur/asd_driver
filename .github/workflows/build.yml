@@ -31,6 +31,8 @@ jobs:
         if: ${{ github.event_name != 'schedule' }}
         run: |
           docker buildx build \
+            --cache-from "type=local,src=/tmp/.buildx-cache" \
+            --cache-to "type=local,dest=/tmp/.buildx-cache" \
             --platform linux/arm64,linux/amd64 \
             --output "type=image,push=true" \
             --tag denizugur/asd_driver:latest \
