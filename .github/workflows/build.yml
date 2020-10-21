@@ -2,7 +2,7 @@ name: Docker
 
 on:
   push:
-    branches: [master]
+    branches: [experimental]
 
 jobs:
   buildx:
@@ -35,10 +35,10 @@ jobs:
             --cache-to "type=local,dest=/tmp/.buildx-cache" \
             --platform linux/arm64,linux/amd64 \
             --output "type=image,push=true" \
-            --tag denizugur/asd_driver:latest \
+            --tag denizugur/asd_driver:experimental \
             --build-arg FREEDOM_URL="${{ secrets.FREEDOM_URL }}" \
             --file ./Dockerfile ./
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect denizugur/asd_driver:latest
+          docker buildx imagetools inspect denizugur/asd_driver:experimental
