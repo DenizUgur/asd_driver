@@ -1,4 +1,4 @@
-movecost <- function (dtm, origin, destin, time="s", resolution=0.05) {
+movecost <- function (dtm, origin, time="s", resolution=0.05) {
 
   cost_function <- function(x){ 
     ifelse(x[adj] > 0, 
@@ -14,15 +14,5 @@ movecost <- function (dtm, origin, destin, time="s", resolution=0.05) {
   slope[adj] <- cost_function(slope)
   Conductance <- gdistance::geoCorrection(slope)
 
-  accum_final <- gdistance::accCost(Conductance, sp::coordinates(origin))
-  accum_final <- raster::mask(accum_final, dtm)
-
-  sPath <- gdistance::shortestPath(Conductance, sp::coordinates(origin), sp::coordinates(destin), output="SpatialLines")
-  sPath$length <- rgeos::gLength(sPath, byid=TRUE)
-  destin$cost <- raster::extract(accum_final, destin)
-
-  results <- list("accumulated.cost.raster"=accum_final,
-                  "cost.raster"=raster(Conductance)@data@values,
-                  "LCPs"=sPath,
-                  "dest.loc.w.cost"=destin)
+  results <- list("cost.raster"=raster(Conductance)@data@values)
 }

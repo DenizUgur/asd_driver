@@ -1,17 +1,4 @@
 <launch>
-
-    <arg name="using_zed" default="true" />
-    <arg name="cmd_topic" value="/cmd_vel" />
-    <arg name="odom_frame" value="odom" />
-
-    <arg name="imu_topic" value="/zed2/imu/data" />
-    <arg name="point_cloud_topic" default="/zed2/point_cloud/cloud_registered" />
-    <arg name="rgb_image_topic" value="/zed2/left/image_rect_color" />
-    <arg name="rgb_camera_info_topic" value="/zed2/left/camera_info" />
-
-    <arg name="depth_image_topic" value="/zed2/depth/depth_registered" />
-    <arg name="depth_camera_info_topic" default="/zed2/depth/camera_info" />
-
     <!-- Connect map to base_link -->
     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 map odom 100" />
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
@@ -20,23 +7,9 @@
     </node>
     <node pkg="asd_core" type="pose_relay.py" name="leo_pose_publisher" />
 
-    <group>
-        <arg name="marker_size" default="14.6" />
-        <arg name="max_new_marker_error" default="0.08" />
-        <arg name="max_track_error" default="0.2" />
-
-        <arg name="cam_image_topic" default="$(arg rgb_image_topic)" />
-        <arg name="cam_info_topic" default="$(arg rgb_camera_info_topic)" />
-        <arg name="output_frame" default="map" />
-
-        <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
-    </group>
-
     <!-- Launch elevation mapping node. -->
     <node pkg="elevation_mapping" type="elevation_mapping" name="elevation_mapping" output="screen">
         <rosparam command="load" file="$(find asd_core)/config/elevation_mapping/default.yaml" />
         <rosparam command="load" file="$(find elevation_mapping)/config/sensor_processors/perfect.yaml" />
     </node>
-
-    <node name="image_saver" pkg="asd_core" type="image_saver.py" />
 </launch>

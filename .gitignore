@@ -216,3 +216,6 @@ CATKIN_IGNORE
 .history
 
 # End of https://www.toptal.com/developers/gitignore/api/linux,ros,python,visualstudiocode
+
+# Other
+data/

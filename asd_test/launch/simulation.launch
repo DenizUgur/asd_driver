@@ -8,11 +8,11 @@
 
     <!-- Start Simulation-->
     <include file="$(find leo_gazebo)/launch/leo_marsyard.launch">
-        <arg name="gui" default="false"/>
+        <arg name="gui" default="true"/>
     </include>
 
     <!-- Spawn Markers -->
-    <include file="$(find asd_test)/launch/markers.launch" />
+    <!-- <include file="$(find asd_test)/launch/markers.launch" /> -->
 
     <!-- rviz -->
     <group if="$(arg rviz)">

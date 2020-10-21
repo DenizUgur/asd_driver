@@ -9,6 +9,13 @@ def callback(msg):
     new_msg.header.frame_id = msg.child_frame_id
     new_msg.pose = msg.pose
 
+    new_msg.pose.covariance = [0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0]
+
     pub.publish(new_msg)
 
 rospy.init_node("pose_relay")
