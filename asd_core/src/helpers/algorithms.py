@@ -2,9 +2,6 @@ import heapq
 import numpy as np
 import math
 
-from numpy.lib.function_base import select
-from sdpath.rdp import rdp
-
 
 class SquareGrid:
     def __init__(self, width, height):
@@ -158,46 +155,11 @@ def custom_search(dem, start, end, c1, c2):
     sx, sy = start
     ex, ey = end
 
-    paths = lambda x, y: [
-        [[x - 5, y], [x - 10, y], [x - 15, y]],
-        [[x - 5, y + 4], [x - 10, y + 6], [x - 15, y + 8]],
-        [[x - 5, y - 4], [x - 10, y - 6], [x - 15, y - 8]],
-        [[x + 5, y], [x + 10, y], [x + 15, y]],
-        [[x + 5, y + 4], [x + 10, y + 6], [x + 15, y + 8]],
-        [[x + 5, y - 4], [x + 10, y - 6], [x + 15, y - 8]],
-        [[x - 5, y + 4], [x - 7, y + 9], [x - 9, y + 14]],
-        [[x + 5, y + 4], [x + 7, y + 9], [x + 9, y + 14]],
-        [[x, y + 4], [x, y + 9], [x, y + 14]],
-        [[x - 5, y - 4], [x - 7, y - 9], [x - 9, y - 14]],
-        [[x + 5, y - 4], [x + 7, y - 9], [x + 9, y - 14]],
-        [[x, y - 4], [x, y - 9], [x, y - 14]],
-    ]
     full_path = [[sx, sy]]
     while math.sqrt((sy - ey) ** 2 + (sx - ex) ** 2) > 10:
-        cp = paths(sx, sy)
-
-        values = []
-        for i, path in enumerate(cp):
-            path = np.array(path)
-
-            cum = 0
-            skip = False
-            for point in path:
-                try:
-                    cum += dem.weights.get((point[0], point[1]))
-                except TypeError:
-                    skip = True
-                    break
-            if skip:
-                continue
-
-            dist = math.sqrt((ey - path[-1][1]) ** 2 + (ex - path[-1][0]) ** 2)
-
-            values.append([i, cum * c1 + dist * c2])
-
-        if len(values) == 0:
+        _, selected = custom_search_select(dem, (sx, sy), (ex, ey), c1, c2)
+        if selected is None:
             break
-        selected = cp[sorted(values, key=lambda x: x[1])[0][0]]
         full_path.extend(selected)
         sx, sy = selected[-1][0], selected[-1][1]
         # print(math.sqrt((sy - ey) ** 2 + (sx - ex) ** 2))
@@ -205,3 +167,50 @@ def custom_search(dem, start, end, c1, c2):
     full_path.append([ex, ey])
     return np.array(full_path)
 
+
+def custom_search_select(dem, start, end, c1, c2, target=False):
+    sx, sy = start
+    ex, ey = end
+    paths = lambda x, y, s: [
+        [[x - 5 * s, y], [x - 10 * s, y], [x - 15 * s, y]],
+        [[x - 5 * s, y + 4 * s], [x - 10 * s, y + 6 * s], [x - 15 * s, y + 8 * s]],
+        [[x - 5 * s, y - 4 * s], [x - 10 * s, y - 6 * s], [x - 15 * s, y - 8 * s]],
+        [[x + 5 * s, y], [x + 10 * s, y], [x + 15 * s, y]],
+        [[x + 5 * s, y + 4 * s], [x + 10 * s, y + 6 * s], [x + 15 * s, y + 8 * s]],
+        [[x + 5 * s, y - 4 * s], [x + 10 * s, y - 6 * s], [x + 15 * s, y - 8 * s]],
+        [[x - 5 * s, y + 4 * s], [x - 7 * s, y + 9 * s], [x - 9 * s, y + 15 * s]],
+        [[x + 5 * s, y + 4 * s], [x + 7 * s, y + 9 * s], [x + 9 * s, y + 15 * s]],
+        [[x, y + 4 * s], [x, y + 9 * s], [x, y + 15 * s]],
+        [[x - 5 * s, y - 4 * s], [x - 7 * s, y - 9 * s], [x - 9 * s, y - 15 * s]],
+        [[x + 5 * s, y - 4 * s], [x + 7 * s, y - 9 * s], [x + 9 * s, y - 15 * s]],
+        [[x, y - 4 * s], [x, y - 9 * s], [x, y - 15 * s]],
+    ]
+    cpR = paths(sx, sy, 0.05)
+    cp = paths(dem.shape[0] // 2, dem.shape[1] // 2, 1)
+    values = []
+    for i, path in enumerate(cp):
+        path = np.array(path)
+
+        cum = 0
+        skip = False
+        for point in path:
+            try:
+                cum += dem[point[1], point[0]]
+            except TypeError:
+                skip = True
+                break
+        if skip:
+            continue
+
+        referance_point = cpR[i][-1]
+        dist = math.sqrt((ey - referance_point[1]) ** 2 + (ex - referance_point[0]) ** 2)
+
+        values.append([i, cum * c1 + dist * c2])
+
+    if len(values) == 0:
+        return None
+
+    if target:
+        return cpR[sorted(values, key=lambda x: x[1])[0][0]][-1]
+    else:
+        return cp[sorted(values, key=lambda x: x[1])[0][0]]

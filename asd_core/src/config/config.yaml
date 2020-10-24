@@ -1,4 +1,4 @@
-local_size: 3.0
+local_size: 4.0
 resolution: 0.05
 xy_tolerance: 0.6
 cmd_vel: "/cmd_vel"

@@ -2,13 +2,15 @@
 
     <!-- Arguments -->
     <arg name="rviz" default="true" />
-    
+
     <!-- Config Files -->
     <arg name="rviz_cfg" default="$(find asd_test)/rviz/default.rviz" />
 
     <!-- Start Simulation-->
     <include file="$(find leo_gazebo)/launch/leo_marsyard.launch">
-        <arg name="gui" default="true"/>
+        <arg name="gui" value="true" />
+        <arg name="world_name" value="$(find gazebo_ros)/launch/empty_world.launch" />
+        <!-- <arg name="world_name" value="$(find marsyard)/worlds/marsyard.world"/> -->
     </include>
 
     <!-- Spawn Markers -->
@@ -16,7 +18,7 @@
 
     <!-- rviz -->
     <group if="$(arg rviz)">
-        <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(arg rviz_cfg)"/>
+        <node pkg="rviz" type="rviz" name="rviz" required="true" args="-d $(arg rviz_cfg)" />
     </group>
 
 </launch>

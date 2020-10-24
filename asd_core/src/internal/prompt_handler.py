@@ -4,20 +4,22 @@ from prompt_toolkit import prompt, HTML, PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.shortcuts import button_dialog, message_dialog
 from prompt_toolkit.completion import NestedCompleter
+from prompt_toolkit.history import FileHistory
 
 
 class PromptHandler:
     def __init__(self, driver):
+        cmd_history = FileHistory(".asd_command_history")
         self.points = yaml.load(open("./config/waypoints.yaml"), Loader=yaml.FullLoader)
         self.driver_instance = driver
-        self.session = PromptSession()
+        self.session = PromptSession(history=cmd_history)
         self.completer = NestedCompleter.from_nested_dict(
             {"goto": {"waypoint": None, "manual": None}, "exit": None, "pass": None}
         )
 
     def get_prompt_base(self):
         ozu_rover = ["<red>O</red>", "z", "<lightblue>U</lightblue>", " Rover"]
-        current_loc = "Marsyard position is x=<b>{:.2f}</b> y=<b>{:.2f}</b>".format(
+        current_loc = "Marsyard position is x=<b>{:.2f}</b> y=<b>{:.2f}</b> r=<b>{:.2f}</b>".format(
             *self.driver_instance.get_current_loc()
         )
         return HTML(

@@ -1,9 +1,8 @@
 import numpy as np
-import math
-import time
 import rospy
 import yaml
-import cv2
+
+# import cv2
 from struct import pack, unpack
 
 from grid_map_msgs.srv import GetGridMap
@@ -49,6 +48,7 @@ class SectorService:
         self.terrain.shape = (raw.layout.dim[0].size, raw.layout.dim[1].size)
         self.terrain = self.scale(np.rot90(self.terrain, k=2))
 
+        """
         raw = payload.data[1]
         upper = np.array(raw.data, dtype=float)
         upper.shape = (raw.layout.dim[0].size, raw.layout.dim[1].size)
@@ -120,6 +120,7 @@ class SectorService:
         self.sandmap = self.sandmap.astype(float)
         self.sandmap = self.scale(self.sandmap)
         self.sandmap[np.isnan(self.terrain)] = np.nan
+        """
 
     def get_extent(self):
         c = (self.config["local_size"] / self.config["resolution"]) / 2 + 1
@@ -141,7 +142,6 @@ class SectorService:
         """
         Alpha Thread is for applying ray-tracing on the local terrain.
         """
-        from matplotlib import pyplot as plt
 
         try:
             self.cost_acc.process_dem(
@@ -150,8 +150,11 @@ class SectorService:
             self.cost_acc.set_points(loc)
             COST = self.cost_acc.calculate()
             COST[np.isnan(self.terrain)] = np.nan
-            COST = self.scale(COST)
+            COST = self.scale(COST, out_range=(0, 1))
 
+            return COST
+
+            """
             fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(
                 nrows=2, ncols=3, sharex=True, sharey=True, figsize=(20, 12)
             )
@@ -191,7 +194,7 @@ class SectorService:
                     int(np.nanmin(self.sandmap)), int(np.nanmax(self.sandmap)), 1
                 ),
             )
-
+            
             qUR = 0.8
             qEC = -2
             qLU = -0.2
@@ -202,10 +205,10 @@ class SectorService:
                     qUR * self.uncertainty
                     + qEC * COST
                     + qLU * self.luminance
-                    + qSP * self.sandmap
+                    # + qSP * self.sandmap
                 )
             )
-
+            
             fusedmap = ax5.contourf(
                 self.fusedmap,
                 cmap="RdYlGn_r",
@@ -251,7 +254,9 @@ class SectorService:
             # ax5.set_anchor("W")
 
             # fig.savefig("all_w_bird.eps", format="eps", dpi=500)
+            """
+            return self.fusedmap, self.cost_acc.check_point(*end)
 
         except Exception as why:
             print(repr(why))
-            return None
+            return None, None
