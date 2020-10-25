@@ -1,5 +1,3 @@
-from platform import dist
-
 from numpy.lib.function_base import angle
 import rospy
 import sys
@@ -10,14 +8,13 @@ import argparse
 import yaml
 from timeit import default_timer as dt
 import numpy as np
-import concurrent.futures
 import math
+import json
 
 # Import internals
 from internal.sector_service import SectorService
 from internal.driver import Driver, DriverStatus
 from internal.prompt_handler import PromptHandler
-from helpers.algorithms import custom_search_select
 
 # Import types
 from nav_msgs.msg import Odometry
@@ -64,6 +61,8 @@ def main(args):
     rospy.wait_for_message(config["odometry_topic"], Odometry, timeout=10)
     rospy.loginfo("OK!")
 
+    data_info = {}
+
     try:
         # ROS Loop
         loop = 0
@@ -85,7 +84,7 @@ def main(args):
             costmap = SectorService_Instance.start_alpha_thread((px, py))
             costmap = -1 * costmap + np.nanmax(costmap)
 
-            XMI, _, YMI, _ = SectorService_Instance.get_extent()
+            XMI, XMA, YMI, YMA = SectorService_Instance.get_extent()
             h, w = costmap.shape
             distance_map = np.fromfunction(
                 lambda iy, ix: (
@@ -161,6 +160,18 @@ def main(args):
             values = []
             fusedmap = args.GAIN_C * costmap + args.GAIN_D * distance_map
 
+            now = int(time.time() * 1e6)
+            np.save("data/{}_costmap".format(now), costmap)
+            np.save("data/{}_distance".format(now), distance_map)
+            data_info[now] = {
+                "GAIN_C": args.GAIN_C,
+                "GAIN_D": args.GAIN_D,
+                "GAIN_A": args.GAIN_A,
+                "GAIN_L": args.GAIN_L,
+                "extent": [XMI, XMA, YMI, YMA],
+                "current_loc": [px, py],
+            }
+
             R = 1.0
             _, perI = perimiter(R=R * 0.5)
             per, perM = perimiter(R=R)
@@ -192,6 +203,11 @@ def main(args):
 
             if math.sqrt((px - x) ** 2 + (py - y) ** 2) < 1:
                 Driver_Instance.halt()
+                with open("data/data_info.json", "w") as outfile:
+                    json.dump(data_info, outfile)
+                should_exit = input("Should we cancel? [n] ")
+                if should_exit != "n":
+                    exit(0)
 
             rospy.rostime.wallsleep(0.1)
     except (Exception, rospy.ROSException, KeyboardInterrupt):
