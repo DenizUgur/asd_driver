@@ -82,7 +82,8 @@ def main(args):
             start = dt()
             SectorService_Instance.update_terrain()
             px, py, _ = Driver_Instance.get_current_loc()
-            costmap = -SectorService_Instance.start_alpha_thread((px, py))
+            costmap = SectorService_Instance.start_alpha_thread((px, py))
+            costmap = -1 * costmap + np.nanmax(costmap)
 
             XMI, _, YMI, _ = SectorService_Instance.get_extent()
             h, w = costmap.shape
@@ -96,14 +97,23 @@ def main(args):
             )
             distance_map = SectorService_Instance.scale(distance_map, out_range=(0, 1))
 
-            angles = np.linspace(0, 2 * math.pi, retstep=0.1)[0]
-            R = 1.0
-            perimiter = np.vstack((R * np.cos(angles) + px, R * np.sin(angles) + py)).T
-            perimiterR = np.vstack(
-                (R * 20 * np.cos(angles) + (h // 2), R * 20 * np.sin(angles) + (w // 2))
-            ).T.astype(int)
+            def perimiter(R=1.0, step=0.1, combine=False):
+                angles = np.linspace(0, 2 * math.pi, retstep=step)[0]
+                res = (
+                    np.vstack((R * np.cos(angles) + px, R * np.sin(angles) + py)).T,
+                    np.vstack(
+                        (
+                            R * 20 * np.cos(angles) + (h // 2),
+                            R * 20 * np.sin(angles) + (w // 2),
+                        )
+                    ).T.astype(int),
+                )
+                if combine:
+                    return zip(*res)
+                else:
+                    return res
 
-            #* Plot
+            # * Plot
             if False:
                 from matplotlib import pyplot as plt
 
@@ -112,18 +122,29 @@ def main(args):
                 )
 
                 fusedmap = args.GAIN_C * costmap + args.GAIN_D * distance_map
+                R = 1.0
+                _, perI = perimiter(R=R * 0.5)
+                per, perM = perimiter(R=R)
+                _, perO = perimiter(R=R * 1.5)
 
                 ax1.contourf(distance_map, levels=100)
                 ax2.contourf(costmap, levels=100)
                 ax3.contourf(fusedmap, levels=100)
-                ax3.scatter(perimiterR[:, 0], perimiterR[:, 1], c="black")
+
+                ax3.scatter(perI[:, 0], perI[:, 1], c="black")
+                ax3.scatter(perM[:, 0], perM[:, 1], c="black")
+                ax3.scatter(perO[:, 0], perO[:, 1], c="black")
 
                 values = []
-                for p, pr in zip(perimiter, perimiterR):
-                    val = fusedmap[pr[1], pr[0]]
+                for p, (pri, prm, pro) in zip(perM, zip(perI, perM, perO)):
+                    val = (
+                        fusedmap[pri[1], pri[0]]
+                        + fusedmap[prm[1], prm[0]]
+                        + fusedmap[pro[1], pro[0]]
+                    )
                     if np.isnan(val):
                         continue
-                    values.append([pr, val])
+                    values.append([p, val])
 
                 target = sorted(values, key=lambda k: k[1])[0][0]
                 ax3.scatter(target[0], target[1], c="red")
@@ -139,8 +160,19 @@ def main(args):
 
             values = []
             fusedmap = args.GAIN_C * costmap + args.GAIN_D * distance_map
-            for p, pr in zip(perimiter, perimiterR):
-                val = fusedmap[pr[1], pr[0]]
+
+            R = 1.0
+            _, perI = perimiter(R=R * 0.5)
+            per, perM = perimiter(R=R)
+            _, perO = perimiter(R=R * 1.5)
+
+            values = []
+            for p, (pri, prm, pro) in zip(per, zip(perI, perM, perO)):
+                val = (
+                    fusedmap[pri[1], pri[0]]
+                    + fusedmap[prm[1], prm[0]]
+                    + fusedmap[pro[1], pro[0]]
+                )
                 if np.isnan(val):
                     continue
                 values.append([p, val])
@@ -174,8 +206,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ASD Driver")
-    parser.add_argument("--GAIN_A", type=float)
-    parser.add_argument("--GAIN_L", type=float)
-    parser.add_argument("--GAIN_C", type=float)
-    parser.add_argument("--GAIN_D", type=float)
+    parser.add_argument("--GAIN_A", type=float, default=1.0)
+    parser.add_argument("--GAIN_L", type=float, default=3.0)
+    parser.add_argument("--GAIN_C", type=float, default=0.8)
+    parser.add_argument("--GAIN_D", type=float, default=3.0)
     main(parser.parse_args())
