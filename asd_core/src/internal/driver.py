@@ -11,7 +11,6 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from nav_msgs.msg import Path, Odometry
 from geometry_msgs.msg import PoseStamped, Vector3, Twist
 from std_msgs.msg import Header
-from scipy.spatial.transform import Rotation
 
 
 class DriverStatus(Enum):
@@ -126,19 +125,15 @@ class Driver:
         self.move()
 
     def get_current_loc(self):
-        quat = [
+        x, y, z, w = (
             self.pose.orientation.x,
             self.pose.orientation.y,
             self.pose.orientation.z,
             self.pose.orientation.w,
-        ]
-        rot = Rotation.from_quat(quat)
-        rot_euler = rot.as_euler("xyz")
-        return (
-            self.pose.position.x,
-            self.pose.position.y,
-            rot_euler[2],
         )
+        t1 = 2.0 * (w * z + x * y)
+        t2 = 1.0 - 2.0 * (y ** 2 + z ** 2)
+        return (self.pose.position.x, self.pose.position.y, math.atan2(t1, t2))
 
     def is_target_reached(self):
         reached = False
