@@ -1,6 +1,8 @@
 import heapq
 import numpy as np
 import math
+from timeit import default_timer as dt
+from sdpath.acc import CostAccumulator
 
 
 class SquareGrid:
@@ -203,7 +205,9 @@ def custom_search_select(dem, start, end, c1, c2, target=False):
             continue
 
         referance_point = cpR[i][-1]
-        dist = math.sqrt((ey - referance_point[1]) ** 2 + (ex - referance_point[0]) ** 2)
+        dist = math.sqrt(
+            (ey - referance_point[1]) ** 2 + (ex - referance_point[0]) ** 2
+        )
 
         values.append([i, cum * c1 + dist * c2])
 
@@ -214,3 +218,138 @@ def custom_search_select(dem, start, end, c1, c2, target=False):
         return cpR[sorted(values, key=lambda x: x[1])[0][0]][-1]
     else:
         return cp[sorted(values, key=lambda x: x[1])[0][0]]
+
+
+def custom_search2(dem, current, target, c1=18.0, c2=2.0):
+    all_times = []
+
+    cost_acc = CostAccumulator()
+    cost_acc.process_dem(dem[10:20, 10:20])
+    cost_acc.set_points((0, 0))
+    cost_acc.calculate()
+
+    sx, sy = current
+    ex, ey = target
+
+    full_path = [[sx, sy]]
+    full_start = dt()
+
+    dist = math.sqrt((sy - ey) ** 2 + (sx - ex) ** 2)
+    while dist > 15.0:
+        dist = math.sqrt((sy - ey) ** 2 + (sx - ex) ** 2)
+        print(dist)
+        start = dt()
+        cost_acc.process_dem(dem[sy - 30 : sy + 30, sx - 30 : sx + 30])
+        _dem = cost_acc.calculate()
+        # _dem = -1 * _dem + np.nanmax(_dem)
+        _dem = scale(_dem, out_range=(0, 1))
+        end = dt()
+
+        all_times.append(end - start)
+        selected = custom_search2_sel(
+            _dem, (sx - 30, sy - 30), _dem.shape, target, (sx, sy), c1, c2
+        )
+
+        sx, sy = int(selected[0]), int(selected[1])
+
+        full_path.append((sx, sy))
+
+    full_end = dt()
+    full_path.append([ex, ey])
+    return (
+        np.array(full_path),
+        [
+            full_end - full_start,
+            max(all_times),
+            min(all_times),
+            np.mean(np.array(all_times)),
+        ],
+    )
+
+
+def custom_search3(dem, current, target, c1=0.8, c2=2.0):
+    all_times = []
+
+    sx, sy = current
+    ex, ey = target
+
+    full_path = [[sx, sy]]
+    full_start = dt()
+
+    while math.sqrt((sy - ey) ** 2 + (sx - ex) ** 2) > 20:
+        start = dt()
+        _dem = dem[sy - 40 : sy + 40, sx - 40 : sx + 40]
+        _dem = scale(_dem, out_range=(0, 1))
+        end = dt()
+        all_times.append(end - start)
+        selected = custom_search2_sel(
+            _dem, (sx - 40, sy - 40), _dem.shape, target, (sx, sy), c1, c2
+        )
+
+        sx, sy = int(selected[0]), int(selected[1])
+
+        full_path.append((sx, sy))
+
+    full_end = dt()
+    full_path.append([ex, ey])
+    return (
+        np.array(full_path),
+        [
+            full_end - full_start,
+            max(all_times),
+            min(all_times),
+            np.mean(np.array(all_times)),
+        ],
+    )
+
+
+def perimiter(h, w, px, py, R=1.0, step=0.1):
+    angles = np.linspace(0, 2 * math.pi, retstep=step)[0]
+    return (
+        np.vstack((R * 20 * np.cos(angles) + px, R * 20 * np.sin(angles) + py)).T,
+        np.vstack(
+            (R * 20 * np.cos(angles) + (h // 2), R * 20 * np.sin(angles) + (w // 2))
+        ).T.astype(int),
+    )
+
+
+def scale(x, out_range=(0, 100)):
+    domain = np.nanmin(x), np.nanmax(x)
+    y = (x - (domain[1] + domain[0]) / 2) / (domain[1] - domain[0])
+    return y * (out_range[1] - out_range[0]) + (out_range[1] + out_range[0]) / 2
+
+
+def custom_search2_sel(costmap, extent, dim, target, current, c1=18.0, c2=2.0):
+    XMI, YMI = extent
+    h, w = dim
+    x, y = target
+    px, py = current
+
+    distance_map = np.fromfunction(
+        lambda iy, ix: (((XMI + ix * 1) - x) ** 2 + ((YMI + iy * 1) - y) ** 2) ** 0.5,
+        (h, w),
+        dtype=float,
+    )
+    distance_map = scale(distance_map, out_range=(0, 1))
+
+    values = []
+    fusedmap = c1 * costmap + c2 * distance_map
+
+    R = 0.6
+    _, perI = perimiter(h, w, px, py, R=R * 0.5)
+    per, perM = perimiter(h, w, px, py, R=R)
+    _, perO = perimiter(h, w, px, py, R=R * 1.5)
+
+    values = []
+    for p, (pri, prm, pro) in zip(per, zip(perI, perM, perO)):
+        val = (
+            fusedmap[pri[1], pri[0]]
+            + fusedmap[prm[1], prm[0]]
+            + fusedmap[pro[1], pro[0]]
+        )
+        if np.isnan(val):
+            continue
+        values.append([p, val])
+
+    target = sorted(values, key=lambda k: k[1])[0][0]
+    return target
