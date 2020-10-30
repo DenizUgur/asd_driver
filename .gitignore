@@ -220,3 +220,4 @@ CATKIN_IGNORE
 # Other
 data/
 .asd_command_history
+*.tar*
