@@ -1,7 +1,7 @@
 <div align="center">
   <h1>ASD Driver</h1>
   Autonomous Slope Dependant Driver - A ROS package
-  <br><br>
+  <br>
   <img align="center" src="https://github.com/DenizUgur/asd_driver/workflows/Docker/badge.svg?branch=master" />
 </div>
 
