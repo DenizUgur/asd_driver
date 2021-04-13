@@ -9,5 +9,11 @@
         "/home/ozurover/catkin_ws/devel/lib/python2.7/dist-packages",
         "/opt/ros/melodic/lib/python2.7/dist-packages"
     ],
-    "python.dataScience.jupyterServerURI": "local"
+    "python.dataScience.jupyterServerURI": "local",
+    "python.analysis.extraPaths": [
+        "/home/ozurover/catkin_ws/devel_isolated/teleop_tools_msgs/lib/python2.7/dist-packages",
+        "/home/ozurover/catkin_ws/devel_isolated/kindr_msgs/lib/python2.7/dist-packages",
+        "/home/ozurover/catkin_ws/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
 }
