@@ -49,6 +49,9 @@ RUN mkdir -p /catkin_ws/src && cd /catkin_ws/src \
     && git clone https://github.com/ANYbotics/kindr.git \
     && git clone https://github.com/ANYbotics/kindr_ros.git \
     && git clone https://github.com/anybotics/elevation_mapping.git \
+    && cd elevation_mapping \
+    && git checkout 04f28af523ed90b74d747df64417cedefec60f17 \
+    && cd - \
     && git clone https://github.com/ros/catkin.git \
     && mkdir asd_driver
 
