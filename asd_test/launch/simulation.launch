@@ -8,11 +8,13 @@
 
     <!-- Start Simulation-->
     <include file="$(find leo_gazebo)/launch/leo_marsyard.launch">
-        <arg name="gui" default="false"/>
     </include>
 
     <!-- Spawn Markers -->
     <include file="$(find asd_test)/launch/markers.launch" />
+
+    <!-- Odom Relay -->
+    <node pkg="asd_test" type="odom_relay.py" name="leo_odom_publisher" />
 
     <!-- rviz -->
     <group if="$(arg rviz)">

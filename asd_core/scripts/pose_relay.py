@@ -7,7 +7,7 @@ def callback(msg):
     new_msg = PoseWithCovarianceStamped()
     new_msg.header.stamp = msg.header.stamp
     new_msg.header.frame_id = msg.child_frame_id
-    new_msg.pose = msg.pose
+    new_msg.pose = msg.pose # Remove covariance when using simulation
 
     pub.publish(new_msg)
 
